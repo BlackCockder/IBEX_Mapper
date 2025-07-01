@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a2549b16-7fdd-4001-9d36-7310cab58b6c" name="Changes" comment="Parameters added">
+    <list default="true" id="a2549b16-7fdd-4001-9d36-7310cab58b6c" name="Changes" comment="Filter class added">
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -78,7 +78,7 @@
       <option name="presentableId" value="Default" />
       <updated>1751289346847</updated>
       <workItem from="1751289348191" duration="2098000" />
-      <workItem from="1751358581925" duration="337000" />
+      <workItem from="1751358581925" duration="381000" />
     </task>
     <task id="LOCAL-00001" summary="Main created">
       <option name="closed" value="true" />
@@ -112,7 +112,15 @@
       <option name="project" value="LOCAL" />
       <updated>1751358895748</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="Filter class added">
+      <option name="closed" value="true" />
+      <created>1751358935206</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1751358935206</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -123,6 +131,7 @@
     <MESSAGE value="misc change" />
     <MESSAGE value="Main added" />
     <MESSAGE value="Parameters added" />
-    <option name="LAST_COMMIT_MESSAGE" value="Parameters added" />
+    <MESSAGE value="Filter class added" />
+    <option name="LAST_COMMIT_MESSAGE" value="Filter class added" />
   </component>
 </project>
