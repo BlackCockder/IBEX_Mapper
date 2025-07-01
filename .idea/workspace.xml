@@ -4,8 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a2549b16-7fdd-4001-9d36-7310cab58b6c" name="Changes" comment="misc change">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    <list default="true" id="a2549b16-7fdd-4001-9d36-7310cab58b6c" name="Changes" comment="Filter class added">
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -21,23 +20,28 @@
     </option>
   </component>
   <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="master" />
+      </map>
+    </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "BlackCockder"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;BlackCockder&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/BlackCockder/IBEX_Mapper.git",
-    "accountId": "97714d66-d700-4923-8747-23c2fb4f5e84"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/BlackCockder/IBEX_Mapper.git&quot;,
+    &quot;accountId&quot;: &quot;97714d66-d700-4923-8747-23c2fb4f5e84&quot;
   }
-}]]></component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 3
-}]]></component>
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 3
+}</component>
   <component name="ProjectId" id="2zEHWpJd0o9NJV3VIwOJz2EoKtj" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
@@ -47,12 +51,13 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "master",
+    "git-widget-placeholder": "workflowTest",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -72,7 +77,8 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1751289346847</updated>
-      <workItem from="1751289348191" duration="1047000" />
+      <workItem from="1751289348191" duration="2098000" />
+      <workItem from="1751358581925" duration="381000" />
     </task>
     <task id="LOCAL-00001" summary="Main created">
       <option name="closed" value="true" />
@@ -90,7 +96,31 @@
       <option name="project" value="LOCAL" />
       <updated>1751289607052</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="Main added">
+      <option name="closed" value="true" />
+      <created>1751291124571</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1751291124571</updated>
+    </task>
+    <task id="LOCAL-00004" summary="Parameters added">
+      <option name="closed" value="true" />
+      <created>1751358895748</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1751358895748</updated>
+    </task>
+    <task id="LOCAL-00005" summary="Filter class added">
+      <option name="closed" value="true" />
+      <created>1751358935206</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1751358935206</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -99,6 +129,9 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Main created" />
     <MESSAGE value="misc change" />
-    <option name="LAST_COMMIT_MESSAGE" value="misc change" />
+    <MESSAGE value="Main added" />
+    <MESSAGE value="Parameters added" />
+    <MESSAGE value="Filter class added" />
+    <option name="LAST_COMMIT_MESSAGE" value="Filter class added" />
   </component>
 </project>
