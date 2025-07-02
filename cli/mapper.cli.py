@@ -1,15 +1,16 @@
 from ibex.calculator import Calculator
 from ibex.configurator import Configurator
 from ibex.app import IBEXMapper
+from ibex.projection import Projection
 
 
 def main() -> None:
-    # Dodac projekcje
+    projection = Projection()
     calculator = Calculator()
     configurator = Configurator()
 
-    mapper = IBEXMapper(calculator, configurator)
-    print("IBEX Mapper")
+    mapper = IBEXMapper(projection, calculator, configurator)
+    mapper.generateMapFromLink("testcase.txt", 100)
 
 
 if __name__ == "__main__":

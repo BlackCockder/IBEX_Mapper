@@ -7,6 +7,15 @@ class Calculator:
         pass
 
     def calculateMainFunctionFromData(self, data, dpi):
-        latitude, longitude = np.meshgrid(np.linspace(0, 2*np.pi, dpi), np.linspace(0, np.pi, dpi))
-        result_array = spherical_harmonics(data[:, 0], data[:, 1], latitude, longitude)
-        return np.sum(data[:, 2] * result_array).real
+        colatitude, longitude = np.meshgrid(np.linspace(0, np.pi, dpi), np.linspace(0, 2*np.pi, dpi))
+        heatmapData = np.zeros((dpi, dpi), dtype=np.complex128)
+        i = 0
+        for row in data:
+            l = row[0].astype(int)
+            m = row[1].astype(int)
+            coeff = row[2]
+            Y_lm = spherical_harmonics(m, l, longitude, colatitude)
+            heatmapData += coeff * Y_lm
+            i += 1
+            print(f"Calculating... {round((i/data.shape[0]) * 100, 2)}%")
+        return heatmapData.real
