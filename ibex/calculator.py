@@ -6,19 +6,9 @@ class Calculator:
     def __init__(self):
         pass
 
-    def calculateMainFunctionFromData(self, data, dpi):
-        colatitude, longitude = np.meshgrid(np.linspace(0, np.pi, dpi), np.linspace(0, 2*np.pi, dpi))
-        heatmapData = np.zeros((dpi, dpi), dtype=np.complex128)
-        i = 0
-        for row in data:
-            l = row[0].astype(int)
-            m = row[1].astype(int)
-            coeff = row[2]
-            Y_lm = spherical_harmonics(m, l, longitude, colatitude)
-            heatmapData += coeff * Y_lm
-            i += 1
-            print(f"Calculating... {round((i/data.shape[0]) * 100, 2)}%")
-        return heatmapData.real
+    def calculateMainFunctionFromData(self, data, spherical_harmonics_values_matrix):
+        coefficients = data[:, 2]
+        return np.tensordot(coefficients, np.stack(spherical_harmonics_values_matrix), axes=1)
 
     def cashing(self, data):
         data_types = [np.int32, np.int32, np.float64, np.float64]
