@@ -1,5 +1,6 @@
 from scipy.special import sph_harm as spherical_harmonics
 import numpy as np
+from pathlib import Path
 
 
 class Calculator:
@@ -10,18 +11,42 @@ class Calculator:
         coefficients = data[:, 2]
         return np.tensordot(coefficients, np.stack(spherical_harmonics_values_matrix), axes=1)
 
-    def cashing(self, data):
-        data_types = [np.int32, np.int32, np.float64, np.float64]
-
-        saved_calculations = np.zeros(l.size, dtype=data_types)
-
-        colatitude, longitude = np.meshgrid(np.linspace(0, np.pi, dpi), np.linspace(0, 2 * np.pi, dpi))
-
-        for i in range(l):
-            for j in range(-i, i):
 
 
 
 
-        saved_calculations_array = np.array(saved_calculations)
-        np.savetxt("cashing.txt", saved_calculations_array, delimiter=",")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    def handleUserDataInput(self, dpi: int, target_max_l: int, data: np.ndarray) -> None:
+
+        # checks if directory exists, otherwise creates it
+        cache_dir = Path(__file__).resolve().parent / "cache"
+        cache_dir.mkdir(exist_ok=True)
+        calculateSphericalHarmonicsDataForSetDPI(dpi, target_max_l)
+
+        # names a file
+        file_name = f"DPI{dpi}L{target_max_l}.npy"
+        file_path = cache_dir / file_name
+
+        # checks if file with proper name exists in the "cache" directory, otherwise creates it
+        if file_path.is_file():
+            matrices = np.load(file_path)
+        else:
+            #calculateSphericalHarmonicsDataForSetDPI(dpi, target_max_l)
+            stacked_matrices = np.stack(matrices)
+            stacked_matrices.tofile(file_path)
