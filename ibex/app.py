@@ -1,6 +1,6 @@
-from calculator import Calculator
-from configurator import Configurator
-from projection import Projection
+from .calculator import Calculator
+from .configurator import Configurator
+from .projection import Projection
 import numpy as np
 
 
