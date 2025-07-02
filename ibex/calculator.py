@@ -1,5 +1,6 @@
-from scipy.special import sph_harm as spherical_harmonics
+from scipy.special import sph_harm_y_all as spherical_harmonics
 import numpy as np
+from pathlib import Path
 
 
 class Calculator:
@@ -10,18 +11,23 @@ class Calculator:
         coefficients = data[:, 2]
         return np.tensordot(coefficients, np.stack(spherical_harmonics_values_matrix), axes=1)
 
-    def cashing(self, data):
-        data_types = [np.int32, np.int32, np.float64, np.float64]
-
-        saved_calculations = np.zeros(l.size, dtype=data_types)
-
+    def calculateSphericalHarmonicsDataForSetDPI(self, dpi, target_max_l):
         colatitude, longitude = np.meshgrid(np.linspace(0, np.pi, dpi), np.linspace(0, 2 * np.pi, dpi))
+        spherical_harmonics_array_on_real_plane = []
+        unfiltered_array = spherical_harmonics(target_max_l, target_max_l, colatitude, longitude)
+        for l in range(target_max_l + 1):
+                for m in range(-l, l + 1):
+                    if m < 0:
+                        spherical_harmonic_positive = unfiltered_array[l][m]
+                        spherical_harmonic_negative = unfiltered_array[l][-m]
+                        spherical_harmonic_on_real_space = (1j / np.sqrt(2)) * (spherical_harmonic_positive - (((-1) ** abs(m)) * spherical_harmonic_negative))
+                    elif m == 0:
+                        spherical_harmonic_on_real_space = unfiltered_array[l][m]
+                    else:
+                        spherical_harmonic_positive = unfiltered_array[l][m]
+                        spherical_harmonic_negative = unfiltered_array[l][-m]
+                        spherical_harmonic_on_real_space = (1 / np.sqrt(2)) * (spherical_harmonic_negative + (((-1) ** abs(m)) * spherical_harmonic_positive))
 
-        for i in range(l):
-            for j in range(-i, i):
+                    spherical_harmonics_array_on_real_plane.append(spherical_harmonic_on_real_space.real)
 
-
-
-
-        saved_calculations_array = np.array(saved_calculations)
-        np.savetxt("cashing.txt", saved_calculations_array, delimiter=",")
+        return spherical_harmonics_array_on_real_plane
