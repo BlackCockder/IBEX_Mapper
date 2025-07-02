@@ -1,5 +1,6 @@
 from scipy.special import sph_harm_y_all as spherical_harmonics
 import numpy as np
+from pathlib import Path
 
 
 class Calculator:
@@ -15,17 +16,18 @@ class Calculator:
         spherical_harmonics_array_on_real_plane = []
         unfiltered_array = spherical_harmonics(target_max_l, target_max_l, colatitude, longitude)
         for l in range(target_max_l + 1):
-            for m in range(-target_max_l, target_max_l + 1):
-                spherical_harmonics_pos_m_value = unfiltered_array[l][m]
-                spherical_harmonics_neg_m_value = unfiltered_array[l][-m]
-                if m < 0:
-                    recalculated_real = (1j / np.sqrt(2)) * (spherical_harmonics_pos_m_value - (-1) ** m * spherical_harmonics_neg_m_value)
-                elif m == 0:
-                    recalculated_real = unfiltered_array[l][m]
-                else:
-                    recalculated_real = (1 / np.sqrt(2)) * (spherical_harmonics_neg_m_value + (-1) ** m * spherical_harmonics_pos_m_value)
+                for m in range(-l, l + 1):
+                    if m < 0:
+                        spherical_harmonic_positive = unfiltered_array[l][m]
+                        spherical_harmonic_negative = unfiltered_array[l][-m]
+                        spherical_harmonic_on_real_space = (1j / np.sqrt(2)) * (spherical_harmonic_positive - (((-1) ** abs(m)) * spherical_harmonic_negative))
+                    elif m == 0:
+                        spherical_harmonic_on_real_space = unfiltered_array[l][m]
+                    else:
+                        spherical_harmonic_positive = unfiltered_array[l][m]
+                        spherical_harmonic_negative = unfiltered_array[l][-m]
+                        spherical_harmonic_on_real_space = (1 / np.sqrt(2)) * (spherical_harmonic_negative + (((-1) ** abs(m)) * spherical_harmonic_positive))
 
-                spherical_harmonics_array_on_real_plane.append(recalculated_real.real)
+                    spherical_harmonics_array_on_real_plane.append(spherical_harmonic_on_real_space.real)
 
         return spherical_harmonics_array_on_real_plane
-    
