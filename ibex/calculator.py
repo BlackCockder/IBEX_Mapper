@@ -9,7 +9,7 @@ class Calculator:
 
     def calculateMainFunctionFromData(self, data, spherical_harmonics_values_matrix):
         coefficients = data[:, 2]
-        return np.tensordot(coefficients, np.stack(spherical_harmonics_values_matrix), axes=1
+        return np.tensordot(coefficients, np.stack(spherical_harmonics_values_matrix), axes=1)
                             
     def calculateSphericalHarmonicsDataForSetDPI(self, dpi, target_max_l):
         colatitude, longitude = np.meshgrid(np.linspace(0, np.pi, dpi), np.linspace(0, 2 * np.pi, dpi))
@@ -32,23 +32,17 @@ class Calculator:
 
         return spherical_harmonics_array_on_real_plane
                             
-    def handleUserDataInput(self, dpi: int, target_max_l: int, data: np.ndarray) -> None:
-
-        # checks if directory exists, otherwise creates it
+    def handleUserDataInput(self, dpi: int, target_max_l: int, data: np.ndarray) -> np.ndarray:
         cache_dir = Path(__file__).resolve().parent / "cache"
         cache_dir.mkdir(exist_ok=True)
-        calculateSphericalHarmonicsDataForSetDPI(dpi, target_max_l)
 
-        # names a file
         file_name = f"DPI{dpi}L{target_max_l}.npy"
         file_path = cache_dir / file_name
 
-        # checks if file with proper name exists in the "cache" directory, otherwise creates it
         if file_path.is_file():
-            matrices = np.load(file_path)
+            spherical_harmonics_matrices = np.load(file_path, allow_pickle=True)[:data.shape[0]]
         else:
-            #calculateSphericalHarmonicsDataForSetDPI(dpi, target_max_l)
-            stacked_matrices = np.stack(matrices)
-            stacked_matrices.tofile(file_path)
+            spherical_harmonics_matrices = self.calculateSphericalHarmonicsDataForSetDPI(dpi, target_max_l)
+            np.save(file_path, spherical_harmonics_matrices, allow_pickle=True)
                             
-                            
+        return self.calculateMainFunctionFromData(data, spherical_harmonics_matrices)
