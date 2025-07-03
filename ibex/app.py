@@ -12,4 +12,4 @@ class IBEXMapper:
 
     def generateMapFromLink(self, link: str, accuracy: int, target_max_l: int) -> None:
         imported_data = np.loadtxt(link, comments='#')
-        self.projection.projection(self.calculator.handleUserDataInput(accuracy, target_max_l, imported_data), accuracy)
+        self.projection.projection(self.calculator.handleUserDataInput(accuracy, target_max_l, imported_data), accuracy, link)
