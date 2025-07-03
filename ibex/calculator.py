@@ -7,9 +7,9 @@ class Calculator:
     def __init__(self):
         pass
 
-    def calculateMainFunctionFromData(self, data, spherical_harmonics_values_matrix):
+    def calculateMainFunctionFromData(self, data, spherical_harmonics_values_matrix, dpi):
         coefficients = data[:, 2]
-        return np.tensordot(coefficients, np.stack(spherical_harmonics_values_matrix), axes=1)
+        return np.roll(np.flipud(np.tensordot(coefficients, np.stack(spherical_harmonics_values_matrix), axes=1).T), shift=dpi // 2, axis=1)
                             
     def calculateSphericalHarmonicsDataForSetDPI(self, dpi, target_max_l):
         colatitude, longitude = np.meshgrid(np.linspace(0, np.pi, dpi), np.linspace(0, 2 * np.pi, dpi))
@@ -44,5 +44,6 @@ class Calculator:
         else:
             spherical_harmonics_matrices = self.calculateSphericalHarmonicsDataForSetDPI(dpi, target_max_l)
             np.save(file_path, spherical_harmonics_matrices, allow_pickle=True)
-                            
-        return self.calculateMainFunctionFromData(data, spherical_harmonics_matrices)
+            spherical_harmonics_matrices = spherical_harmonics_matrices[:data.shape[0]]
+
+        return self.calculateMainFunctionFromData(data, spherical_harmonics_matrices, dpi)

@@ -7,13 +7,10 @@ class Projection:
         pass
 
     def projection(self, z: np.ndarray, n: int, filename: str) -> None:
-        lon_min, lon_max, lat_min, lat_max = -180, 180, -90, 90
-        lon, lat = np.meshgrid(
-            np.linspace(lon_min, lon_max, n),
-            np.linspace(lat_min, lat_max, n)
-        )
+        lon = np.linspace(-np.pi, np.pi, n)
+        lat = np.linspace(np.pi/2, -np.pi/2, n)
 
-        lon_r , lat_r = np.deg2rad(lon), np.deg2rad(lat) # in radians
+        lon, lat = np.meshgrid(lon, lat)
 
         raw_label = Path(filename).stem
         safe_label = raw_label.replace("_", " ").removesuffix("esa")
@@ -22,7 +19,7 @@ class Projection:
         ax = fig.add_subplot(111, projection="mollweide")
 
         # lon_r na lat_r changed
-        pcm = ax.pcolormesh(lat_r, lon_r, z, cmap="viridis", shading="auto")
+        pcm = ax.pcolormesh(lon, lat, z, cmap="viridis", shading="auto")
         cbar = fig.colorbar(pcm, ax=ax, orientation="horizontal", pad=0.05)
         cbar.set_label(safe_label)
 
