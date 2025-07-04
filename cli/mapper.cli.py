@@ -1,17 +1,9 @@
-from ibex.calculator import Calculator
-from ibex.configurator import Configurator
-from ibex.app import IBEXMapper
-from ibex.projection import Projection
 import time
+import IBEXMapper
 
 
 def main() -> None:
-    projection = Projection()
-    calculator = Calculator()
-    configurator = Configurator()
-
-    mapper = IBEXMapper(projection, calculator, configurator)
-    mapper.generateMapFromLink("testcase.txt", 100)
+    IBEXMapper.generateMapFromLink("t2010_02.txt", 400, 30)
 
 
 if __name__ == "__main__":
