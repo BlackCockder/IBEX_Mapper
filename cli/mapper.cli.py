@@ -1,7 +1,7 @@
-from ibex.calculator import Calculator
-from ibex.configurator import Configurator
-from ibex.app import IBEXMapper
-from ibex.projection import Projection
+from IBEXMapper.calculator import Calculator
+from IBEXMapper.configurator import Configurator
+from IBEXMapper.app import IBEXMapper
+from IBEXMapper.projection import Projection
 import time
 
 
