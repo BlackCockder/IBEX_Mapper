@@ -20,6 +20,19 @@ class Projection:
 
         # lon_r na lat_r changed
         pcm = ax.pcolormesh(lon, lat, z, cmap="viridis", shading="auto")
+        # mask
+        mask_neg = z < 0
+        lon_r = np.where(mask_neg, lon, np.nan)
+        lat_r = np.where(mask_neg, lat, np.nan)
+
+        # scatter line below zero
+        cs = ax.contour(
+            lon_r, lat_r, z,
+            levels=[0],
+            colors="red",
+            linestyles="--",
+            linewidths=0.8
+        )
         cbar = fig.colorbar(pcm, ax=ax, orientation="horizontal", pad=0.05)
         cbar.set_label(safe_label)
 

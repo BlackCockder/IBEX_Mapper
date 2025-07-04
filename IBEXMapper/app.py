@@ -1,5 +1,4 @@
 import json
-
 from .calculator import Calculator
 from .configurator import Configurator
 from .projection import Projection
