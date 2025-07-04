@@ -20,7 +20,6 @@ class Projection:
 
         # lon_r na lat_r changed
         pcm = ax.pcolormesh(lon, lat, z, cmap="viridis", shading="auto")
-
         # mask
         mask_neg = z < 0
         lon_r = np.where(mask_neg, lon, np.nan)
@@ -34,7 +33,6 @@ class Projection:
             linestyles="--",
             linewidths=0.8
         )
-
         cbar = fig.colorbar(pcm, ax=ax, orientation="horizontal", pad=0.05)
         cbar.set_label(safe_label)
 
