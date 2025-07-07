@@ -49,3 +49,21 @@ class IBEXMapper:
     def setDefaultConfig(self, config: dict) -> None:
         with open("config.json", "w") as c:
             json.dump(config, c, indent=4)
+
+    def generateConfigFromPartialInfo(self, partial_config: dict) -> dict:
+        default_config = self.getDefaultConfig()
+
+        merged_config = deepcopy(default_config)
+
+        merged_config.update(partial_config)
+
+        return merged_config
+
+    def getDefaultConfig(self) -> dict:
+        with open("config.json", "r") as config_file:
+            return json.load(config_file)
+
+    def resetConfig(self) -> None:
+        self.generateDefaultConfig()
+        self.def_config = self.getDefaultConfig()
+        

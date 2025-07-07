@@ -3,7 +3,7 @@ import IBEXMapper
 
 
 def main() -> None:
-    IBEXMapper.generateMapFromLink("t2010_02.txt", 400, 30)
+    IBEXMapper.generateMapFromLink("t2010_02.txt")
 
 
 if __name__ == "__main__":
