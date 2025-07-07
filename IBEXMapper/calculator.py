@@ -69,16 +69,17 @@ class Calculator:
             return (1 / np.sqrt(2)) * (spherical_harmonic_negative + (((-1) ** abs(m)) * spherical_harmonic_positive))
 
     def convertSphericalToCartesian(self, lon_mesh: np.ndarray, lat_mesh: np.ndarray) \
-            -> tuple[np.ndarray, np.ndarray , np.ndarray]:
+            -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         x = np.cos(lat_mesh) * np.cos(lon_mesh)
         y = np.cos(lat_mesh) * np.sin(lon_mesh)
         z = np.sin(lat_mesh)
         return x, y, z
 
-    def convertCartesianToSpherical(self, x_mesh: np.ndarray, y_mesh: np.ndarray, z_mesh: np.ndarray) \
+    def convertCartesianToSpherical(self, x: np.ndarray, y: np.ndarray, z: np.ndarray) \
             -> tuple[np.ndarray, np.ndarray]:
-        lat = np.arcsin(z_mesh)
-        lon = np.arctan2(y_mesh, x_mesh)
+        r = np.sqrt(x ** 2 + y ** 2 + z ** 2)
+        lat = np.arcsin(z / r)
+        lon = np.arctan2(y, x)
         return lon, lat
 
     def rotateGridByTwoRotations(self,

@@ -21,14 +21,23 @@ class Projection:
         raw_label = Path(filename).stem
         safe_label = raw_label.replace("_", " ").removesuffix("esa")
 
-        fig = plt.figure(figsize=(8, 6))
-        ax = fig.add_subplot(111, projection="mollweide")
-        # Points in degrees (lon, lat)
-        central_point_deg = (-120.0, 43.0)
-        meridian_point_deg = (5.0, 40.0)
+        fig, ax = plt.subplots(figsize=(8, 6))
+        pcm = ax.pcolormesh(lon, lat, z, cmap="viridis", shading="auto")
+        cbar = fig.colorbar(pcm, ax=ax, orientation="horizontal", pad=0.05)
+        cbar.set_label(safe_label)
+
+        ax.set_title("IBEX Mapper (Rectangular Projection)")
+        ax.set_xlabel("Longitude (rad)")
+        ax.set_ylabel("Latitude (rad)")
+        ax.set_xlim([-np.pi, np.pi])
+        ax.set_ylim([-np.pi / 2, np.pi / 2])
+        ax.set_aspect('auto')
+
+        central_point_deg = (-125.0, 0.1)
+        meridian_point_deg = (-40.0, 5.0)
 
         Rotation1 = temp_configurator.buildCenteringRotation(np.array(central_point_deg))
-        Rotation2 = temp_configurator.buildAligningRotation(np.array(meridian_point_deg))
+        Rotation2 = temp_configurator.buildAligningRotation(np.array(meridian_point_deg), Rotation1)
 
         # Use your function, but pass them as 1-element arrays
         central_vec = temp_configurator.convertSphericalToCartesianForPoints(central_point_deg[0], central_point_deg[1])
@@ -50,32 +59,15 @@ class Projection:
             np.array([[rotated_meridian_vec[1]]]),
             np.array([[rotated_meridian_vec[2]]])
         )
+        print("Rotated central point (deg):", np.rad2deg(central_lon[0, 0]), np.rad2deg(central_lat[0, 0]))
+        print("Rotated meridian point (deg):", np.rad2deg(meridian_lon[0, 0]), np.rad2deg(meridian_lat[0, 0]))
 
 
         ax.plot(central_lon[0, 0], central_lat[0, 0], 'ro', markersize=6, label="Central Point")
         ax.plot(meridian_lon[0, 0], meridian_lat[0, 0], 'bo', markersize=6, label="Meridian Point")
 
         ax.legend(loc='lower left')
-
-
-        pcm = ax.pcolormesh(lon, lat, z, cmap="viridis", shading="auto")
-        # mask
-        mask_neg = z < 0
-        lon_r = np.where(mask_neg, lon, np.nan)
-        lat_r = np.where(mask_neg, lat, np.nan)
-
-        # scatter line below zero
-        cs = ax.contour(
-            lon_r, lat_r, z,
-            levels=[0],
-            colors="red",
-            linestyles="--",
-            linewidths=0.8
-        )
-        cbar = fig.colorbar(pcm, ax=ax, orientation="horizontal", pad=0.05)
-        cbar.set_label(safe_label)
-
-        plt.title("IBEX Mapper")
+        plt.tight_layout()
         plt.savefig("IBEX_Mapper.pdf", format='pdf', dpi=n)
         plt.show()
 

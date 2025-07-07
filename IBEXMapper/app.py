@@ -6,6 +6,7 @@ from .handler import Handler
 import numpy as np
 from copy import deepcopy
 import ast
+import os
 
 
 class IBEXMapper:
@@ -29,21 +30,25 @@ class IBEXMapper:
             lon, lat = np.meshgrid(lon, lat)
             x, y, z = self.calculator.convertSphericalToCartesian(lon, lat)
 
-            aligned_data = self.configurator.buildCenteringRotation(config["location_of_central_point"])
-            rotated_data = self.configurator.buildAligningRotation(config["meridian_point"])
-            x_rot, y_rot, z_rot = self.calculator.rotateGridByTwoRotations(x, y, z, aligned_data, rotated_data)
+            central_rotation = self.configurator.buildCenteringRotation(config["location_of_central_point"])
+            meridian_rotation = self.configurator.buildAligningRotation(config["meridian_point"], central_rotation)
+            x_rot, y_rot, z_rot = self.calculator.rotateGridByTwoRotations(x, y, z, central_rotation, meridian_rotation)
             lon, lat = self.calculator.convertCartesianToSpherical(x_rot, y_rot, z_rot)
+            print("lon range:", np.min(lon), np.max(lon))
+            print("lat range:", np.min(lat), np.max(lat))
             heatmap_data = self.calculator.interpolateDataForNewGrid(heatmap_data, lat, lon)
 
         return self.projection.projection(heatmap_data, config["map_accuracy"], file_path)
 
     def generateDefaultConfig(self):
+        if os.path.exists("config.json"):
+            return
         default_config = {
             "map_accuracy": "400",
             "max_l_to_cache": "30",
             "rotate": "True",
-            "location_of_central_point": "(-120.0, 43.0)",  # (lon, lat)
-            "meridian_point": "(5.0, 40.0)"
+            "location_of_central_point": "(-120.0, 1.0)",  # (lon, lat)
+            "meridian_point": "(5.0, 1.0)"
         }
         with open("config.json", "w") as config:
             json.dump(default_config, config, indent=4)

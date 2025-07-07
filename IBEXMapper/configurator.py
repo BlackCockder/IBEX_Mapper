@@ -17,18 +17,24 @@ class Configurator:
 
     def buildCenteringRotation(self, new_central_vector: np.ndarray) -> np.ndarray:
         current_central_vector = np.array([1., 0., 0.])
-        new_central_vector = new_central_vector / np.linalg.norm(new_central_vector)
 
         central_vector_in_cartesian = self.convertSphericalToCartesianForPoints(new_central_vector[0], new_central_vector[1])
+        central_vector_in_cartesian /= np.linalg.norm(central_vector_in_cartesian)
 
-        crossproduct_vector = np.cross(current_central_vector, central_vector_in_cartesian)
+        crossproduct_vector = np.cross(central_vector_in_cartesian, current_central_vector)
+        crossproduct_vector /= np.linalg.norm(crossproduct_vector)
 
-        alpha_in_degrees = np.clip(np.dot(current_central_vector, central_vector_in_cartesian), -1.0, 1.0)
+        alpha_in_degrees = np.clip(np.dot(central_vector_in_cartesian, current_central_vector), -1.0, 1.0)
         alpha_in_radians = np.arccos(alpha_in_degrees)
 
         return R.from_rotvec(alpha_in_radians * crossproduct_vector).as_matrix()
 
-    def buildAligningRotation(self, vector_to_align: np.ndarray) -> np.ndarray:
-        vector_to_align_in_cartesian = self.convertSphericalToCartesianForPoints(vector_to_align[0], vector_to_align[1])
-        beta = np.arctan2(vector_to_align_in_cartesian[1], vector_to_align_in_cartesian[2])
+    def buildAligningRotation(self, lon_lat_deg: np.ndarray, central_rotation: np.ndarray) -> np.ndarray:
+        vec = self.convertSphericalToCartesianForPoints(*lon_lat_deg)
+        vec = central_rotation @ vec
+
+        y, z = vec[1], vec[2]
+        beta = -np.arctan2(y, z)
+
         return R.from_euler("x", beta).as_matrix()
+
