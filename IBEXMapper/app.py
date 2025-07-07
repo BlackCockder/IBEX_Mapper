@@ -16,24 +16,24 @@ class IBEXMapper:
         self.generateDefaultConfig()
         self.def_config = self.getDefaultConfig()
 
-    def generateMapFromLink(self, link: str, config=None) -> None:
+    def generateMapFromLink(self, file_path: str, config=None) -> None:
+        imported_data = np.loadtxt(file_path, comments='#')
         if config is None:
             config = self.def_config
-        imported_data = np.loadtxt(link, comments='#')
 
+        heatmap_data  = self.handler.processUserDataset(int(config["map_accuracy"]), int(config["max_l_to_cache"]), imported_data)
+        if config["rotate"]:
+            lon = np.linspace(-np.pi, np.pi, int(config["map_accuracy"]))
+            lat = np.linspace(np.pi / 2, -np.pi / 2, int(config["map_accuracy"]))
+            x, y, z = self.calculator.convertSphericalToCartesian(lon, lat)
 
+            aligned_data = self.configurator.buildCenteringRotation(config["location_of_central_point"])
+            rotated_data = self.configurator.buildAligningRotation(config["meridian_point"])
+            x_rot, y_rot, z_rot = self.calculator.rotateGridByTwoRotations(x, y, z, aligned_data, rotated_data)
+            lon, lat = self.calculator.convertCartesianToSpherical(z_rot, y_rot, z_rot)
+            heatmap_data = self.calculator.interpolateDataForNewGrid(heatmap_data, lat, lon)
 
-
-
-
-
-
-
-
-
-
-
-
+        return self.projection.projection(heatmap_data, int(config["map_accuracy"]), file_path)
 
     def generateDefaultConfig(self):
         default_config = {
@@ -66,3 +66,4 @@ class IBEXMapper:
     def resetConfig(self) -> None:
         self.generateDefaultConfig()
         self.def_config = self.getDefaultConfig()
+        
