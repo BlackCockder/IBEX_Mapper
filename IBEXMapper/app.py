@@ -7,15 +7,18 @@ import numpy as np
 
 
 class IBEXMapper:
-    def __init__(self, projection: Projection, calculator: Calculator, configurator: Configurator, handler: Handler) -> None:
+    def __init__(self, projection: Projection, calculator: Calculator, configurator: Configurator, handler: Handler, def_config: dict) -> None:
         self.projection = projection
         self.calculator = calculator
         self.configurator = configurator
         self.handler = handler
+        self.generateDefaultConfig()
+        self.def_config = self.getDefaultConfig()
 
-    def generateMapFromLink(self, link: str, accuracy: int, target_max_l: int, *config: dict) -> None:
+    def generateMapFromLink(self, link: str, config=None) -> None:
+        if config is None:
+            config = self.def_config
         imported_data = np.loadtxt(link, comments='#')
-        self.projection.projection(self.handler.processUserDataset(accuracy, target_max_l, imported_data), accuracy, link)
 
     def generateDefaultConfig(self):
         default_config = {
@@ -32,5 +35,11 @@ class IBEXMapper:
         with open("config.json", "w") as c:
             json.dump(config, c, indent=4)
 
-    def overrideDefaultConfigLocally(self, config: dict) -> None:
-        pass
+    def overrideDefaultConfigLocally(self, config: dict) -> dict:
+        return config
+
+
+    def getDefaultConfig(self) -> dict:
+        with open("config.json", "r") as c:
+            return json.load(c)
+
