@@ -19,7 +19,7 @@ class Handler:
         harmonics for. Intended value is one that user sets as default in the config.
 
         :param data:
-        Matrix of (N, 3) size. Generally used for accessing 3rd column where the coefficients are located and for
+        Matrix of (N, 4) size. Generally used for accessing 3rd column where the coefficients are located and for
         cutting the cached spherical harmonics data to match the row length for vectorized matrix multiplication in
         calculator.
 
