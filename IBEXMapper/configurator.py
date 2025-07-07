@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.spatial.transform import Rotation as R
-from calculator import Calculator
+from .calculator import Calculator
 
 
 class Configurator:
@@ -19,9 +19,9 @@ class Configurator:
         current_central_vector = np.array([1., 0., 0.])
         new_central_vector = new_central_vector / np.linalg.norm(new_central_vector)
 
-        central_vector_in_cartesian: np.ndarray = self.convertSphericalToCartesianForPoints(new_central_vector[0], new_central_vector[1])
+        central_vector_in_cartesian = self.convertSphericalToCartesianForPoints(new_central_vector[0], new_central_vector[1])
 
-        crossproduct_vector: np.ndarray = np.cross(current_central_vector, central_vector_in_cartesian)
+        crossproduct_vector = np.cross(current_central_vector, central_vector_in_cartesian)
 
         alpha_in_degrees = np.clip(np.dot(current_central_vector, central_vector_in_cartesian), -1.0, 1.0)
         alpha_in_radians = np.arccos(alpha_in_degrees)
