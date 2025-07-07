@@ -4,10 +4,11 @@ from .configurator import Configurator
 from .projection import Projection
 from .handler import Handler
 import numpy as np
+from copy import deepcopy
 
 
 class IBEXMapper:
-    def __init__(self, projection: Projection, calculator: Calculator, configurator: Configurator, handler: Handler, def_config: dict) -> None:
+    def __init__(self, projection: Projection, calculator: Calculator, configurator: Configurator, handler: Handler) -> None:
         self.projection = projection
         self.calculator = calculator
         self.configurator = configurator
@@ -20,11 +21,25 @@ class IBEXMapper:
             config = self.def_config
         imported_data = np.loadtxt(link, comments='#')
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     def generateDefaultConfig(self):
         default_config = {
             "map_accuracy": "720",
             "max_l_to_cache": "30",
-            "rotate": "false",
+            "rotate": "False",
             "location_of_central_point": "(0, 0)",
             "meridian_point": "(90, -120)",
         }
@@ -35,11 +50,19 @@ class IBEXMapper:
         with open("config.json", "w") as c:
             json.dump(config, c, indent=4)
 
-    def overrideDefaultConfigLocally(self, config: dict) -> dict:
-        return config
+    def generateConfigFromPartialInfo(self, partial_config: dict) -> dict:
+        default_config = self.getDefaultConfig()
 
+        merged_config = deepcopy(default_config)
+
+        merged_config.update(partial_config)
+
+        return merged_config
 
     def getDefaultConfig(self) -> dict:
-        with open("config.json", "r") as c:
-            return json.load(c)
+        with open("config.json", "r") as config_file:
+            return json.load(config_file)
 
+    def resetConfig(self) -> None:
+        self.generateDefaultConfig()
+        self.def_config = self.getDefaultConfig()
