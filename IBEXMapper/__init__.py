@@ -7,7 +7,7 @@ from .app import IBEXMapper as _IBEXMapperClass
 
 _projection = Projection()
 _calculator = Calculator()
-_configurator = Configurator()
+_configurator = Configurator(_calculator)
 _handler = Handler(_calculator)
 _mapper = _IBEXMapperClass(_projection, _calculator, _configurator, _handler)
 

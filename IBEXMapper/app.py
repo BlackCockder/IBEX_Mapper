@@ -5,6 +5,7 @@ from .projection import Projection
 from .handler import Handler
 import numpy as np
 from copy import deepcopy
+import ast
 
 
 class IBEXMapper:
@@ -14,34 +15,35 @@ class IBEXMapper:
         self.configurator = configurator
         self.handler = handler
         self.generateDefaultConfig()
-        self.def_config = self.getDefaultConfig()
+        self.def_config = self.formatConfigDatastructures(self.getDefaultConfig())
 
     def generateMapFromLink(self, file_path: str, config=None) -> None:
         imported_data = np.loadtxt(file_path, comments='#')
         if config is None:
             config = self.def_config
 
-        heatmap_data  = self.handler.processUserDataset(int(config["map_accuracy"]), int(config["max_l_to_cache"]), imported_data)
+        heatmap_data = self.handler.processUserDataset(config["map_accuracy"], config["max_l_to_cache"], imported_data)
         if config["rotate"]:
-            lon = np.linspace(-np.pi, np.pi, int(config["map_accuracy"]))
-            lat = np.linspace(np.pi / 2, -np.pi / 2, int(config["map_accuracy"]))
+            lon = np.linspace(-np.pi, np.pi, config["map_accuracy"])
+            lat = np.linspace(np.pi / 2, -np.pi / 2, config["map_accuracy"])
+            lon, lat = np.meshgrid(lon, lat)
             x, y, z = self.calculator.convertSphericalToCartesian(lon, lat)
 
             aligned_data = self.configurator.buildCenteringRotation(config["location_of_central_point"])
             rotated_data = self.configurator.buildAligningRotation(config["meridian_point"])
             x_rot, y_rot, z_rot = self.calculator.rotateGridByTwoRotations(x, y, z, aligned_data, rotated_data)
-            lon, lat = self.calculator.convertCartesianToSpherical(z_rot, y_rot, z_rot)
+            lon, lat = self.calculator.convertCartesianToSpherical(x_rot, y_rot, z_rot)
             heatmap_data = self.calculator.interpolateDataForNewGrid(heatmap_data, lat, lon)
 
-        return self.projection.projection(heatmap_data, int(config["map_accuracy"]), file_path)
+        return self.projection.projection(heatmap_data, config["map_accuracy"], file_path)
 
     def generateDefaultConfig(self):
         default_config = {
-            "map_accuracy": "720",
+            "map_accuracy": "400",
             "max_l_to_cache": "30",
-            "rotate": "False",
-            "location_of_central_point": "(0, 0)",
-            "meridian_point": "(90, -120)",
+            "rotate": "True",
+            "location_of_central_point": "(-120.0, 43.0)",  # (lon, lat)
+            "meridian_point": "(5.0, 40.0)"
         }
         with open("config.json", "w") as config:
             json.dump(default_config, config, indent=4)
@@ -51,7 +53,7 @@ class IBEXMapper:
             json.dump(config, c, indent=4)
 
     def generateConfigFromPartialInfo(self, partial_config: dict) -> dict:
-        default_config = self.getDefaultConfig()
+        default_config = self.formatConfigDatastructures(self.getDefaultConfig())
 
         merged_config = deepcopy(default_config)
 
@@ -66,4 +68,31 @@ class IBEXMapper:
     def resetConfig(self) -> None:
         self.generateDefaultConfig()
         self.def_config = self.getDefaultConfig()
-        
+
+    def formatConfigDatastructures(self, config: dict) -> dict:
+        config_types_schema = {
+            "map_accuracy": int,
+            "max_l_to_cache": int,
+            "rotate": bool,
+            "location_of_central_point": np.ndarray,
+            "meridian_point": np.ndarray,
+        }
+        formatted_config = {}
+        for key, value in config.items():
+            expected_type = config_types_schema.get(key, str)
+            try:
+                formatted_config[key] = self.parseDataToCorrectType(value, expected_type)
+            except Exception as e:
+                raise ValueError(f"Error parsing key '{key}' with value '{value}': {e}")
+        return formatted_config
+
+    def parseDataToCorrectType(self, value, expected_type):
+        if expected_type == bool:
+            return str(value).lower() == "true"
+        elif expected_type == int:
+            return int(value)
+        elif expected_type == np.ndarray:
+            tuple_val = ast.literal_eval(value)
+            return np.array(tuple_val)
+        else:
+            return value
