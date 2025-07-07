@@ -12,5 +12,13 @@ _handler = Handler(_calculator)
 _mapper = _IBEXMapperClass(_projection, _calculator, _configurator, _handler)
 
 
-def generateMapFromLink(link: str, accuracy: int, target_max_l: int):
-    return _mapper.generateMapFromLink(link, accuracy, target_max_l)
+def generateMapFromLink(link: str, config=None) -> None:
+    return _mapper.generateMapFromLink(link, config)
+
+
+def setDefaultConfig(config: dict) -> None:
+    return _mapper.setDefaultConfig(config)
+
+
+def overrideDefaultConfigLocally(config: dict) -> dict:
+    return _mapper.overrideDefaultConfigLocally(config)
