@@ -7,11 +7,43 @@ class Calculator:
     def __init__(self):
         pass
 
-    def calculateMainMatrixFromData(self, data, spherical_harmonics_values_matrix, dpi):
+    def calculateMainMatrixFromData(self, data: np.ndarray, spherical_harmonics_values_matrix: np.ndarray, dpi: int):
+        """
+        Function that calculates main heatmap matrix by vectorized multiplying coefficient with relative value from
+        spherical harmonics value matrix.
+
+        :param data:
+        A (N, 4) matrix of data given by user
+
+        :param spherical_harmonics_values_matrix:
+        A (dpi, dpi) size matrix of values for corresponding coefficients that will be multiplied with the coefficients.
+
+        :param dpi:
+        Final size of matrix (dpi, dpi).
+        Note: this parameter must always be the same for matrix given by :param spherical_harmonics_values_matrix: or
+        else this will generate errors.
+
+        :return:
+        Returns the main matrix but also realigns it, so it has the same coordinate system as the one used in mollweide
+        projection. Refer to the projection function in Projection class to see the ranges of the (x, y) matrix of
+        coordinates.
+        """
+        # Assuming that 3rd column is always the column with coefficients
         coefficients = data[:, 2]
-        return np.roll(np.flipud(np.tensordot(coefficients, np.stack(spherical_harmonics_values_matrix), axes=1).T), shift=dpi // 2, axis=1)
+
+        main_matrix = np.tensordot(coefficients, np.stack(spherical_harmonics_values_matrix), axes=1).T
+
+        # Matrix realignment
+        flipped_main_matrix = np.flipud(main_matrix)
+        return np.roll(flipped_main_matrix, shift=dpi // 2, axis=1)
                             
     def calculateSphericalHarmonicsDataForSetDPI(self, dpi, target_max_l):
+        """
+        Function
+        :param dpi:
+        :param target_max_l:
+        :return:
+        """
         colatitude, longitude = np.meshgrid(np.linspace(0, np.pi, dpi), np.linspace(0, 2 * np.pi, dpi))
         spherical_harmonics_array_on_real_plane = []
         unfiltered_array = spherical_harmonics(target_max_l, target_max_l, colatitude, longitude)
@@ -23,10 +55,12 @@ class Calculator:
                             unfiltered_array[l][m],
                             unfiltered_array[l][-m])
                         .real)
-
         return spherical_harmonics_array_on_real_plane
 
-    def filterComplexNumbersFromSphericalHarmonics(self, m, spherical_harmonic_positive, spherical_harmonic_negative):
+    def filterComplexNumbersFromSphericalHarmonics(self,
+                                                   m: float,
+                                                   spherical_harmonic_positive: np.ndarray,
+                                                   spherical_harmonic_negative: np.ndarray) -> np.ndarray:
         if m < 0:
             return (1j / np.sqrt(2)) * (spherical_harmonic_positive - (((-1) ** abs(m)) * spherical_harmonic_negative))
         elif m == 0:
@@ -34,16 +68,18 @@ class Calculator:
         else:
             return (1 / np.sqrt(2)) * (spherical_harmonic_negative + (((-1) ** abs(m)) * spherical_harmonic_positive))
 
-    def convertSphericalToCartesian(self, lon_mesh: np.ndarray, lat_mesh: np.ndarray) -> np.ndarray:
+    def convertSphericalToCartesian(self, lon_mesh: np.ndarray, lat_mesh: np.ndarray) \
+            -> tuple[np.ndarray, np.ndarray , np.ndarray]:
         x = np.cos(lat_mesh) * np.cos(lon_mesh)
         y = np.cos(lat_mesh) * np.sin(lon_mesh)
         z = np.sin(lat_mesh)
-        return np.stack((x, y, z), axis=-1)
+        return x, y, z
 
-    def convertCartesianToSpherical(self, x_mesh: np.ndarray, y_mesh: np.ndarray, z_mesh: np.ndarray) -> np.ndarray:
+    def convertCartesianToSpherical(self, x_mesh: np.ndarray, y_mesh: np.ndarray, z_mesh: np.ndarray) \
+            -> tuple[np.ndarray, np.ndarray]:
         lat = np.arcsin(z_mesh)
         lon = np.arctan2(y_mesh, x_mesh)
-        return np.stack((lat, lon), axis=-1)
+        return lon, lat
 
     def rotateGridByTwoRotations(self,
                                  x_mesh: np.ndarray,
