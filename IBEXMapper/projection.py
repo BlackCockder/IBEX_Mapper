@@ -12,7 +12,7 @@ class Projection:
     def __init__(self):
         pass
 
-    def projection(self, z: np.ndarray, n: int, filename: str) -> None:
+    def projection(self, z: np.ndarray, n: int, filename: str, central_coords: tuple[float, float], meridian_coords: tuple[float, float]) -> None:
         lon = np.linspace(-np.pi, np.pi, n)
         lat = np.linspace(np.pi/2, -np.pi/2, n)
 
@@ -33,15 +33,13 @@ class Projection:
         ax.set_ylim([-np.pi / 2, np.pi / 2])
         ax.set_aspect('auto')
 
-        central_point_deg = (-125.0, 0.1)
-        meridian_point_deg = (-40.0, 5.0)
 
-        Rotation1 = temp_configurator.buildCenteringRotation(np.array(central_point_deg))
-        Rotation2 = temp_configurator.buildAligningRotation(np.array(meridian_point_deg), Rotation1)
+        Rotation1 = temp_configurator.buildCenteringRotation(np.array(central_coords))
+        Rotation2 = temp_configurator.buildAligningRotation(np.array(meridian_coords), Rotation1)
 
         # Use your function, but pass them as 1-element arrays
-        central_vec = temp_configurator.convertSphericalToCartesianForPoints(central_point_deg[0], central_point_deg[1])
-        meridian_vec = temp_configurator.convertSphericalToCartesianForPoints(meridian_point_deg[0], meridian_point_deg[1])
+        central_vec = temp_configurator.convertSphericalToCartesianForPoints(central_coords[0], central_coords[1])
+        meridian_vec = temp_configurator.convertSphericalToCartesianForPoints(meridian_coords[0], meridian_coords[1])
 
         FinalRotation = Rotation2 @ Rotation1
 

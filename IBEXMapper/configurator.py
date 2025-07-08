@@ -30,7 +30,8 @@ class Configurator:
         return R.from_rotvec(alpha_in_radians * crossproduct_vector).as_matrix()
 
     def buildAligningRotation(self, lon_lat_deg: np.ndarray, central_rotation: np.ndarray) -> np.ndarray:
-        vec = self.convertSphericalToCartesianForPoints(*lon_lat_deg)
+        vec = self.convertSphericalToCartesianForPoints(lon_lat_deg[0], lon_lat_deg[1])
+        vec /= np.linalg.norm(vec)
         vec = central_rotation @ vec
 
         y, z = vec[1], vec[2]

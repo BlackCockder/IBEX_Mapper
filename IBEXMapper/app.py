@@ -38,7 +38,7 @@ class IBEXMapper:
             print("lat range:", np.min(lat), np.max(lat))
             heatmap_data = self.calculator.interpolateDataForNewGrid(heatmap_data, lat, lon)
 
-        return self.projection.projection(heatmap_data, config["map_accuracy"], file_path)
+        return self.projection.projection(heatmap_data, config["map_accuracy"], file_path, config["location_of_central_point"], config["meridian_point"])
 
     def generateDefaultConfig(self):
         if os.path.exists("config.json"):
