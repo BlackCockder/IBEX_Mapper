@@ -31,7 +31,7 @@ class IBEXMapper:
             x, y, z = self.calculator.convertSphericalToCartesian(lon, lat)
 
             central_rotation = self.configurator.buildCenteringRotation(config["location_of_central_point"])
-            meridian_rotation = np.eye(3)
+            meridian_rotation = self.configurator.buildMeridianRotation(config["meridian_point"], central_rotation)
             x_rot, y_rot, z_rot = self.calculator.rotateGridByTwoRotations(x, y, z, central_rotation, meridian_rotation)
             lon, lat = self.calculator.convertCartesianToSpherical(x_rot, y_rot, z_rot)
             print("lon range:", np.min(lon), np.max(lon))

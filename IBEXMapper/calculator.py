@@ -93,7 +93,7 @@ class Calculator:
 
         cartesian_coordinates_matrix = np.stack((x_mesh, y_mesh, z_mesh), axis=-1).reshape(-1, 3)
 
-        rotated_cartesian_coordinates_matrix = cartesian_coordinates_matrix @ central_rotation.T
+        rotated_cartesian_coordinates_matrix = cartesian_coordinates_matrix @ full_rotation.T
 
         rot_x_mesh = rotated_cartesian_coordinates_matrix[:, 0].reshape(original_shape)
         rot_y_mesh = rotated_cartesian_coordinates_matrix[:, 1].reshape(original_shape)

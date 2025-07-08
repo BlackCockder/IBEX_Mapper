@@ -23,13 +23,18 @@ class Configurator:
         rotation, _ = R.align_vectors(current_vec, target_vec)
         return rotation.as_matrix()
 
-    def buildAligningRotation(self, lon_lat_deg: np.ndarray, central_rotation: np.ndarray) -> np.ndarray:
+    def buildMeridianRotation(self, lon_lat_deg: np.ndarray, central_rotation: np.ndarray) -> np.ndarray:
         vec = self.convertSphericalToCartesianForPoints(lon_lat_deg[0], lon_lat_deg[1])
         vec /= np.linalg.norm(vec)
+        print(vec)
         vec = central_rotation @ vec
+        print(vec)
 
         y, z = vec[1], vec[2]
-        beta = -np.arctan2(y, z)
+        beta = np.arctan2(y, z)
+        print("--------------------------------------------")
+        print(R.from_euler("x", beta).as_matrix())
+        print("--------------------------------------------")
 
         return R.from_euler("x", beta).as_matrix()
 

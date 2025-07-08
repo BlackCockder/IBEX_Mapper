@@ -18,24 +18,31 @@ class Projection:
 
         lon, lat = np.meshgrid(lon, lat)
 
-        raw_label = Path(filename).stem
-        safe_label = raw_label.replace("_", " ").removesuffix("esa")
 
-        fig, ax = plt.subplots(figsize=(8, 6))
-        pcm = ax.pcolormesh(lon, lat, z, cmap="viridis", shading="auto")
+        raw_label = Path(filename).stem
+        safe_label = raw_label.replace("_", " ").removesuffix("esa").lstrip("t") # for testing
+        # rib, ylm, coeff, year, number = safe_label.split(" ")
+
+        fig = plt.figure(figsize=(8, 6))
+        ax = fig.add_subplot(111, projection="mollweide")
+
+        pcm = ax.pcolormesh(lon, lat, z, cmap="magma", shading="auto") # cmap: "viridis"
         cbar = fig.colorbar(pcm, ax=ax, orientation="horizontal", pad=0.05)
         cbar.set_label(safe_label)
 
-        ax.set_title("IBEX Mapper (Rectangular Projection)")
-        ax.set_xlabel("Longitude (rad)")
-        ax.set_ylabel("Latitude (rad)")
-        ax.set_xlim([-np.pi, np.pi])
-        ax.set_ylim([-np.pi / 2, np.pi / 2])
-        ax.set_aspect('auto')
+        # ax.text(x=np.pi, y=np.pi/2, s=f"YEAR: {year}")
+        # ax.text(x=-np.pi, y=np.pi/2, s=f"NUMBER: {number}")
 
+        ax.set_title("IBEX Mapper (Rectangular Projection)")
+        # ax.set_xlabel("Longitude (rad)")
+        # ax.set_ylabel("Latitude (rad)")
+        # ax.set_xlim([-np.pi, np.pi])
+        # ax.set_ylim([-np.pi / 2, np.pi / 2])
+        # ax.set_aspect('auto')
+        # ax.invert_xaxis()
 
         Rotation1 = temp_configurator.buildCenteringRotation(np.array(central_coords))
-        Rotation2 = temp_configurator.buildAligningRotation(np.array(meridian_coords), Rotation1)
+        Rotation2 = temp_configurator.buildMeridianRotation(np.array(meridian_coords), Rotation1)
 
         # Use your function, but pass them as 1-element arrays
         central_vec = temp_configurator.convertSphericalToCartesianForPoints(central_coords[0], central_coords[1])
@@ -69,4 +76,3 @@ class Projection:
         plt.tight_layout()
         plt.savefig("IBEX_Mapper.pdf", format='pdf', dpi=n)
         plt.show()
-
