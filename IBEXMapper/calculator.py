@@ -34,8 +34,7 @@ class Calculator:
         main_matrix = np.tensordot(coefficients, np.stack(spherical_harmonics_values_matrix), axes=1).T
 
         # Matrix realignment
-        flipped_main_matrix = np.flipud(main_matrix)
-        return np.roll(flipped_main_matrix, shift=dpi // 2, axis=1)
+        return np.fliplr(main_matrix)
                             
     def calculateSphericalHarmonicsDataForSetDPI(self, dpi, target_max_l):
         """
@@ -77,8 +76,7 @@ class Calculator:
 
     def convertCartesianToSpherical(self, x: np.ndarray, y: np.ndarray, z: np.ndarray) \
             -> tuple[np.ndarray, np.ndarray]:
-        r = np.sqrt(x ** 2 + y ** 2 + z ** 2)
-        lat = np.arcsin(z / r)
+        lat = np.arcsin(z)
         lon = np.arctan2(y, x)
         return lon, lat
 
@@ -95,7 +93,7 @@ class Calculator:
 
         cartesian_coordinates_matrix = np.stack((x_mesh, y_mesh, z_mesh), axis=-1).reshape(-1, 3)
 
-        rotated_cartesian_coordinates_matrix = cartesian_coordinates_matrix @ full_rotation.T
+        rotated_cartesian_coordinates_matrix = cartesian_coordinates_matrix @ central_rotation.T
 
         rot_x_mesh = rotated_cartesian_coordinates_matrix[:, 0].reshape(original_shape)
         rot_y_mesh = rotated_cartesian_coordinates_matrix[:, 1].reshape(original_shape)

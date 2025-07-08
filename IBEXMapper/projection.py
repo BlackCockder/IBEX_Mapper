@@ -43,7 +43,8 @@ class Projection:
 
         FinalRotation = Rotation2 @ Rotation1
 
-        rotated_central_vec = FinalRotation @ central_vec
+        rotated_central_vec = Rotation1 @ central_vec
+        print(rotated_central_vec)
         rotated_meridian_vec = FinalRotation @ meridian_vec
 
         central_lon, central_lat = temp_calculator.convertCartesianToSpherical(
