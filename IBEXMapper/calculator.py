@@ -34,8 +34,7 @@ class Calculator:
         main_matrix = np.tensordot(coefficients, np.stack(spherical_harmonics_values_matrix), axes=1).T
 
         # Matrix realignment
-        flipped_main_matrix = np.flipud(main_matrix)
-        return np.roll(flipped_main_matrix, shift=dpi // 2, axis=1)
+        return np.fliplr(main_matrix)
                             
     def calculateSphericalHarmonicsDataForSetDPI(self, dpi, target_max_l):
         """
@@ -69,16 +68,16 @@ class Calculator:
             return (1 / np.sqrt(2)) * (spherical_harmonic_negative + (((-1) ** abs(m)) * spherical_harmonic_positive))
 
     def convertSphericalToCartesian(self, lon_mesh: np.ndarray, lat_mesh: np.ndarray) \
-            -> tuple[np.ndarray, np.ndarray , np.ndarray]:
+            -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         x = np.cos(lat_mesh) * np.cos(lon_mesh)
         y = np.cos(lat_mesh) * np.sin(lon_mesh)
         z = np.sin(lat_mesh)
         return x, y, z
 
-    def convertCartesianToSpherical(self, x_mesh: np.ndarray, y_mesh: np.ndarray, z_mesh: np.ndarray) \
+    def convertCartesianToSpherical(self, x: np.ndarray, y: np.ndarray, z: np.ndarray) \
             -> tuple[np.ndarray, np.ndarray]:
-        lat = np.arcsin(z_mesh)
-        lon = np.arctan2(y_mesh, x_mesh)
+        lat = np.arcsin(z)
+        lon = np.arctan2(y, x)
         return lon, lat
 
     def rotateGridByTwoRotations(self,
@@ -94,7 +93,7 @@ class Calculator:
 
         cartesian_coordinates_matrix = np.stack((x_mesh, y_mesh, z_mesh), axis=-1).reshape(-1, 3)
 
-        rotated_cartesian_coordinates_matrix = cartesian_coordinates_matrix @ full_rotation.T
+        rotated_cartesian_coordinates_matrix = cartesian_coordinates_matrix @ full_rotation
 
         rot_x_mesh = rotated_cartesian_coordinates_matrix[:, 0].reshape(original_shape)
         rot_y_mesh = rotated_cartesian_coordinates_matrix[:, 1].reshape(original_shape)
@@ -107,13 +106,11 @@ class Calculator:
         dpi = data_to_interpolate.shape[0]
 
         lat = np.linspace(np.pi / 2, -np.pi / 2, dpi)
-        lon = np.linspace(-np.pi, np.pi, dpi)
-
-        rotated_lon_wrapped = np.mod(rotated_lon + np.pi, 2 * np.pi) - np.pi
+        lon = np.linspace(np.pi, -np.pi, dpi)
 
         interpolator = RegularGridInterpolator((lat, lon), data_to_interpolate, method='linear', bounds_error=False, fill_value=np.nan)
 
-        points = np.stack((rotated_lat.ravel(), rotated_lon_wrapped.ravel()), axis=-1)
+        points = np.stack((rotated_lat.ravel(), rotated_lon.ravel()), axis=-1)
 
         interpolated = interpolator(points).reshape(rotated_lat.shape)
 
