@@ -30,6 +30,21 @@ class Projection:
         lat = np.degrees(np.arctan2(z, hyp))
         return lon, lat
 
+    def buildCenteringRotation2(self, vec_sph_deg: np.ndarray) -> np.ndarray:
+        """
+        Zwraca macierz 3×3, która przenosi wektor (lon, lat) w stopniach
+        → na punkt (lon=0°, lat=0°).  NIE ZMIENIAMY podpisu funkcji,
+        więc wszystkie istniejące wywołania nadal działają.
+        """
+        # 1. sfera → kartezjańskie
+        v_cart = temp_configurator.convertSphericalToCartesianForPoints(vec_sph_deg)
+        # 2. wektor docelowy: środek mapy (1,0,0)
+        target = np.array([1.0, 0.0, 0.0])
+        # 3. wyznacz rotację minimalnego kąta
+        rot, _ = R.align_vectors([target], [v_cart])
+        return rot.as_matrix()
+
+
     def projection(self, z: np.ndarray,
                    n: int, filename: str,
                    central_coords: tuple[float, float],
@@ -70,15 +85,50 @@ class Projection:
         Rotation2 = temp_configurator.buildMeridianRotation(np.array(meridian_coords), Rotation1)
 
         # Use your function, but pass them as 1-element arrays
-        central_vec = temp_configurator.convertSphericalToCartesianForPoints(central_coords[0], central_coords[1])
-        meridian_vec = temp_configurator.convertSphericalToCartesianForPoints(meridian_coords[0], meridian_coords[1])
+        central_vec = temp_configurator.convertSphericalToCartesianForPoints(np.array(central_coords))
+        meridian_vec = temp_configurator.convertSphericalToCartesianForPoints(np.array(central_coords))
 
         FinalRotation = Rotation2 @ Rotation1
+
+        Rotation12 = self.buildCenteringRotation2(np.array(central_coords))
+        Rotation22 = self.buildCenteringRotation2(np.array(meridian_coords))
+
+        FinalRotation2 = Rotation22 @ Rotation12
 
         for delta in lon_grid:
             theta_line = np.linspace(np.pi/2, -np.pi/2, 361)
             delta_line = np.full_like(theta_line, delta)
 
+            x, y, z = temp_configurator.convertSphericalToCartesianForPoints(
+                np.vstack((np.rad2deg(delta_line),  # lon – w °, pierwszy wiersz
+                           np.rad2deg(theta_line)))  # lat – w °, drugi wiersz
+            )
+            xyz_rot = FinalRotation2 @ np.vstack((x, y, z)) #.T
+            delta_rot, theta_rot = temp_calculator.convertCartesianToSpherical(xyz_rot[0:1], xyz_rot[1:2], xyz_rot[2:3]) #temp
+
+            (h,) = ax.plot(delta_rot.flatten(), theta_rot.flatten(),
+                       lw=0.4, color="white", alpha=0.7, zorder=3)
+            graticule_handles.append(h)
+
+        for theta in lat_grid:
+            delta_line = np.linspace(-np.pi, np.pi, 361)
+            theta_line = np.full_like(delta_line, theta)
+
+            x, y, z = temp_configurator.convertSphericalToCartesianForPoints(
+                np.vstack((np.rad2deg(delta_line),  # lon – w °, pierwszy wiersz
+                           np.rad2deg(theta_line)))  # lat – w °, drugi wiersz
+            )
+            xyz_rot = FinalRotation2 @ np.vstack((x, y, z))
+            delta_rot, theta_rot = temp_calculator.convertCartesianToSpherical(xyz_rot[0:1], xyz_rot[1:2], xyz_rot[2:3])  #temp
+
+            (h,) = ax.plot(delta_rot.flatten(), theta_rot.flatten(),
+                           lw=0.4, color='white', alpha=0.7, zorder=3)
+            graticule_handles.append(h)
+
+        for h in graticule_handles:
+            h.set_visible(True)  # ukryj
+            h.set_linewidth(1.2)  # pogrub
+            h.set_color('cyan')  # zmień kolor
 
 
         rotated_central_vec = Rotation1 @ central_vec
