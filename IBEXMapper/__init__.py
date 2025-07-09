@@ -21,4 +21,8 @@ def setDefaultConfig(config: dict) -> None:
 
 
 def overrideDefaultConfigLocally(config: dict) -> dict:
-    return _mapper.overrideDefaultConfigLocally(config)
+    return _mapper.generateConfigFromPartialInfo(config)
+
+
+def getObjectInstance() -> _IBEXMapperClass:
+    return _mapper
