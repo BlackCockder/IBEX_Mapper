@@ -3,6 +3,7 @@ import numpy as np
 from pathlib import Path
 from .configurator import Configurator
 from .calculator import Calculator
+from scipy.spatial.transform import Rotation as R
 
 temp_calculator = Calculator()
 temp_configurator = Configurator(temp_calculator)
@@ -12,12 +13,36 @@ class Projection:
     def __init__(self):
         pass
 
-    def projection(self, z: np.ndarray, n: int, filename: str, central_coords: tuple[float, float], meridian_coords: tuple[float, float]) -> None:
+    @staticmethod
+    def sph2cart(lon_deg, lat_deg):
+        lon = np.radians(lon_deg)
+        lat = np.radians(lat_deg)
+        x = np.cos(lat) * np.cos(lon)
+        y = np.cos(lat) * np.sin(lon)
+        z = np.sin(lat)
+        return np.vstack((x, y, z)).T            # shape: (N,3)
+
+    @staticmethod
+    def cart2sph(xyz):
+        x, y, z = xyz.T
+        lon = np.degrees(np.arctan2(y, x))
+        hyp = np.hypot(x, y)
+        lat = np.degrees(np.arctan2(z, hyp))
+        return lon, lat
+
+    def projection(self, z: np.ndarray,
+                   n: int, filename: str,
+                   central_coords: tuple[float, float],
+                   meridian_coords: tuple[float, float]) -> None:
+
         lon = np.linspace(-np.pi, np.pi, n)
         lat = np.linspace(np.pi/2, -np.pi/2, n)
-
         lon, lat = np.meshgrid(lon, lat)
 
+        lon_step, lat_step = 30, 30
+        lon_grid = np.deg2rad(np.arange(-180, 181, lon_step))
+        lat_grid = np.deg2rad(np.arange(-90, 91, lat_step))
+        graticule_handles = []
 
         raw_label = Path(filename).stem
         safe_label = raw_label.replace("_", " ").removesuffix("esa").lstrip("t") # for testing
@@ -33,7 +58,7 @@ class Projection:
         # ax.text(x=np.pi, y=np.pi/2, s=f"YEAR: {year}")
         # ax.text(x=-np.pi, y=np.pi/2, s=f"NUMBER: {number}")
 
-        ax.set_title("IBEX Mapper (Rectangular Projection)")
+        ax.set_title("IBEX Mapper")
         # ax.set_xlabel("Longitude (rad)")
         # ax.set_ylabel("Latitude (rad)")
         # ax.set_xlim([-np.pi, np.pi])
@@ -49,6 +74,12 @@ class Projection:
         meridian_vec = temp_configurator.convertSphericalToCartesianForPoints(meridian_coords[0], meridian_coords[1])
 
         FinalRotation = Rotation2 @ Rotation1
+
+        for delta in lon_grid:
+            theta_line = np.linspace(np.pi/2, -np.pi/2, 361)
+            delta_line = np.full_like(theta_line, delta)
+
+
 
         rotated_central_vec = Rotation1 @ central_vec
         print(rotated_central_vec)
