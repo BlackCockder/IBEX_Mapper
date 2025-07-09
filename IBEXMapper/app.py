@@ -7,22 +7,22 @@ import numpy as np
 from copy import deepcopy
 import ast
 import os
-import matplotlib.pyplot as plt
 
 
 class IBEXMapper:
-    def __init__(self, projection: Projection, calculator: Calculator, configurator: Configurator, handler: Handler) -> None:
+    def __init__(self, projection: Projection, calculator: Calculator, configurator: Configurator,
+                 handler: Handler) -> None:
         self.projection = projection
         self.calculator = calculator
         self.configurator = configurator
         self.handler = handler
-        self.generateDefaultConfig()
-        self.def_config = self.formatConfigDatastructures(self.getDefaultConfig())
+        if not os.path.exists("config.json"):
+            self.generateDefaultConfig()
 
     def generateMapFromLink(self, file_path: str, config=None) -> None:
         imported_data = np.loadtxt(file_path, comments='#')
         if config is None:
-            config = self.def_config
+            config = self.formatConfigDatastructures(self.getDefaultConfig())
 
         heatmap_data = self.handler.processUserDataset(config["map_accuracy"], config["max_l_to_cache"], imported_data)
         if config["rotate"]:
@@ -32,15 +32,15 @@ class IBEXMapper:
             x, y, z = self.calculator.convertSphericalToCartesian(lon, lat)
             central_rotation = self.configurator.buildCenteringRotation(config["location_of_central_point"])
             meridian_rotation = self.configurator.buildMeridianRotation(config["meridian_point"], central_rotation)
-            x_rot, y_rot, z_rot = self.calculator.rotateGridByTwoRotations(x, y, z, central_rotation, meridian_rotation)
+            main_rotation = self.configurator.combineRotation(meridian_rotation, central_rotation).T
+            x_rot, y_rot, z_rot = self.calculator.rotateGridByRotation(x, y, z, main_rotation)
             lon, lat = self.calculator.convertCartesianToSpherical(x_rot, y_rot, z_rot)
             heatmap_data = self.calculator.interpolateDataForNewGrid(heatmap_data, lat, lon)
 
-        return self.projection.projection(heatmap_data, config["map_accuracy"], file_path, config["location_of_central_point"], config["meridian_point"])
+        return self.projection.projection(heatmap_data, config["map_accuracy"], file_path,
+                                          config["location_of_central_point"], config["meridian_point"])
 
     def generateDefaultConfig(self):
-        if os.path.exists("config.json"):
-            return
         default_config = {
             "map_accuracy": "400",
             "max_l_to_cache": "30",
@@ -52,13 +52,24 @@ class IBEXMapper:
             json.dump(default_config, config, indent=4)
 
     def setDefaultConfig(self, config: dict) -> None:
+        def convert_value(value):
+            if isinstance(value, (int, bool)):
+                return str(value)
+            elif isinstance(value, np.ndarray):
+                return str(tuple(value.tolist()))
+            else:
+                return str(value)
+
+        serialized_config = {key: convert_value(value) for key, value in config.items()}
         with open("config.json", "w") as c:
-            json.dump(config, c, indent=4)
+            json.dump(serialized_config, c, indent=4)
 
     def generateConfigFromPartialInfo(self, partial_config: dict) -> dict:
         default_config = self.formatConfigDatastructures(self.getDefaultConfig())
 
         merged_config = deepcopy(default_config)
+
+        self.assertConfig(partial_config)
 
         merged_config.update(partial_config)
 
@@ -70,7 +81,6 @@ class IBEXMapper:
 
     def resetConfig(self) -> None:
         self.generateDefaultConfig()
-        self.def_config = self.getDefaultConfig()
 
     def formatConfigDatastructures(self, config: dict) -> dict:
         config_types_schema = {
@@ -99,3 +109,48 @@ class IBEXMapper:
             return np.array(tuple_val)
         else:
             return value
+
+    def assertConfig(self, config: dict) -> None:
+        if "map_accuracy" in config:
+            try:
+                map_accuracy = int(config["map_accuracy"])
+                if map_accuracy <= 0:
+                    raise ValueError("Map accuracy must be a positive integer.")
+            except (ValueError, TypeError):
+                raise ValueError("Map accuracy must be a positive integer.")
+
+        if "max_l_to_cache" in config:
+            try:
+                max_l = int(config["max_l_to_cache"])
+                if max_l <= 0:
+                    raise ValueError("Max l must be a positive integer.")
+            except (ValueError, TypeError):
+                raise ValueError("Max l must be a positive integer.")
+
+        if "rotate" in config:
+            rotate = config["rotate"]
+            if isinstance(rotate, str):
+                if rotate.lower() not in ("true", "false"):
+                    raise ValueError("Rotate must be a boolean or a string 'True'/'False'.")
+            elif not isinstance(rotate, bool):
+                raise ValueError("Rotate must be a boolean.")
+
+        def validate_geo_point(name, val):
+            try:
+                if isinstance(val, str):
+                    val = ast.literal_eval(val)
+                arr = np.array(val)
+                if arr.ndim != 1 or arr.shape[0] != 2:
+                    raise ValueError(f"{name} must be a 1D array of two values.")
+                lon, lat = arr
+                if not (-180 <= lon <= 180 and -90 <= lat <= 90):
+                    raise ValueError(f"{name} coordinates out of bounds: "
+                                     f"longitude must be in [-180, 180], latitude in [-90, 90].")
+            except Exception:
+                raise ValueError(f"{name} must be a 1D array-like structure of two floats (e.g., (lon, lat)).")
+
+        if "location_of_central_point" in config:
+            validate_geo_point("Central point", config["location_of_central_point"])
+
+        if "meridian_point" in config:
+            validate_geo_point("Meridian point", config["meridian_point"])

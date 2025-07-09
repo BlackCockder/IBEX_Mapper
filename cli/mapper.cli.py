@@ -5,9 +5,15 @@ import IBEXMapper as ib
 
 def main() -> None:
     mapper = ib.getObjectInstance()
+    mapper.setDefaultConfig(mapper.generateConfigFromPartialInfo({
+        "map_accuracy": 720,
+        "rotate": True,
+        "location_of_central_point": np.array([100, 5]),
+        "meridian_point": np.array([100, 20])
+    }))
     mapper.generateMapFromLink("t2010_02.txt")
     np.set_printoptions(precision=8, suppress=True, floatmode='fixed')
-    config = mapper.def_config
+    config = mapper.getDefaultConfig()
     initial_center = np.array([0, 0])
     target_center = config["location_of_central_point"]
     meridian_vector = config["meridian_point"]
