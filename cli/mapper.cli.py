@@ -9,11 +9,11 @@ def main() -> None:
         "map_accuracy": 720,
         "rotate": True,
         "location_of_central_point": np.array([100, 5]),
-        "meridian_point": np.array([100, 20])
+        "meridian_point": np.array([80, 20])
     }))
     mapper.generateMapFromLink("t2010_02.txt")
     np.set_printoptions(precision=8, suppress=True, floatmode='fixed')
-    config = mapper.getDefaultConfig()
+    config = mapper.formatConfigDatastructures(mapper.getDefaultConfig())
     initial_center = np.array([0, 0])
     target_center = config["location_of_central_point"]
     meridian_vector = config["meridian_point"]
