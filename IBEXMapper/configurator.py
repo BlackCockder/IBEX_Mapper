@@ -40,3 +40,6 @@ class Configurator:
         beta = np.arctan2(y, z)
 
         return R.from_euler("x", beta).as_matrix()
+
+    def combineRotation(self, original_rotation: np.ndarray, input_rotation) -> np.ndarray:
+        return input_rotation @ original_rotation

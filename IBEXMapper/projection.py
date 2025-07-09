@@ -32,8 +32,8 @@ class Projection:
 
     def projection(self, z: np.ndarray,
                    n: int, filename: str,
-                   central_coords: tuple[float, float],
-                   meridian_coords: tuple[float, float]) -> None:
+                   central_coords: np.ndarray,
+                   meridian_coords: np.ndarray) -> None:
 
         lon = np.linspace(-np.pi, np.pi, n)
         lat = np.linspace(np.pi/2, -np.pi/2, n)
@@ -70,8 +70,8 @@ class Projection:
         Rotation2 = temp_configurator.buildMeridianRotation(np.array(meridian_coords), Rotation1)
 
         # Use your function, but pass them as 1-element arrays
-        central_vec = temp_configurator.convertSphericalToCartesianForPoints(central_coords[0], central_coords[1])
-        meridian_vec = temp_configurator.convertSphericalToCartesianForPoints(meridian_coords[0], meridian_coords[1])
+        central_vec = temp_configurator.convertSphericalToCartesianForPoints(central_coords)
+        meridian_vec = temp_configurator.convertSphericalToCartesianForPoints(meridian_coords)
 
         FinalRotation = Rotation2 @ Rotation1
 
