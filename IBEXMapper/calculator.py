@@ -93,7 +93,7 @@ class Calculator:
 
         cartesian_coordinates_matrix = np.stack((x_mesh, y_mesh, z_mesh), axis=-1).reshape(-1, 3)
 
-        rotated_cartesian_coordinates_matrix = cartesian_coordinates_matrix @ full_rotation.T
+        rotated_cartesian_coordinates_matrix = cartesian_coordinates_matrix @ full_rotation
 
         rot_x_mesh = rotated_cartesian_coordinates_matrix[:, 0].reshape(original_shape)
         rot_y_mesh = rotated_cartesian_coordinates_matrix[:, 1].reshape(original_shape)
@@ -106,13 +106,11 @@ class Calculator:
         dpi = data_to_interpolate.shape[0]
 
         lat = np.linspace(np.pi / 2, -np.pi / 2, dpi)
-        lon = np.linspace(-np.pi, np.pi, dpi)
-
-        rotated_lon_wrapped = np.mod(rotated_lon + np.pi, 2 * np.pi) - np.pi
+        lon = np.linspace(np.pi, -np.pi, dpi)
 
         interpolator = RegularGridInterpolator((lat, lon), data_to_interpolate, method='linear', bounds_error=False, fill_value=np.nan)
 
-        points = np.stack((rotated_lat.ravel(), rotated_lon_wrapped.ravel()), axis=-1)
+        points = np.stack((rotated_lat.ravel(), rotated_lon.ravel()), axis=-1)
 
         interpolated = interpolator(points).reshape(rotated_lat.shape)
 
