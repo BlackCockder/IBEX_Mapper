@@ -1,9 +1,9 @@
+import json
 import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
 from .configurator import Configurator
 from .calculator import Calculator
-from scipy.spatial.transform import Rotation as R
 
 temp_calculator = Calculator()
 temp_configurator = Configurator(temp_calculator)
@@ -79,10 +79,7 @@ class Projection:
             theta_line = np.linspace(np.pi/2, -np.pi/2, 361)
             delta_line = np.full_like(theta_line, delta)
 
-
-
         rotated_central_vec = Rotation1 @ central_vec
-        print(rotated_central_vec)
         rotated_meridian_vec = FinalRotation @ meridian_vec
 
         central_lon, central_lat = temp_calculator.convertCartesianToSpherical(
@@ -96,14 +93,59 @@ class Projection:
             np.array([[rotated_meridian_vec[1]]]),
             np.array([[rotated_meridian_vec[2]]])
         )
-        print("Rotated central point (deg):", np.rad2deg(central_lon[0, 0]), np.rad2deg(central_lat[0, 0]))
-        print("Rotated meridian point (deg):", np.rad2deg(meridian_lon[0, 0]), np.rad2deg(meridian_lat[0, 0]))
 
 
         ax.plot(central_lon[0, 0], central_lat[0, 0], 'ro', markersize=6, label="Central Point")
         ax.plot(meridian_lon[0, 0], meridian_lat[0, 0], 'bo', markersize=6, label="Meridian Point")
 
+        parsed_points = self.load_points("map_features.json")
+
+        for point in parsed_points:
+            name = point["name"]
+            spherical = point["coordinates"]
+            color = point["color"]
+
+            cartesian = temp_configurator.convertSphericalToCartesianForPoints(spherical)
+
+            rotated_cartesian = FinalRotation @ cartesian
+
+            lon_rot, lat_rot = temp_calculator.convertCartesianToSpherical(
+                np.array([[rotated_cartesian[0]]]),
+                np.array([[rotated_cartesian[1]]]),
+                np.array([[rotated_cartesian[2]]])
+            )
+
+            ax.plot(lon_rot[0, 0], lat_rot[0, 0], 'o', markersize=5, color=color)
+            ax.text(lon_rot[0, 0], lat_rot[0, 0], f' {name}', fontsize=7, color=color)
+
+
         ax.legend(loc='lower left')
         plt.tight_layout()
         plt.savefig("IBEX_Mapper.pdf", format='pdf', dpi=n)
         plt.show()
+
+    def load_points(self, json_path: str):
+        """
+        Loads points from JSON file and parses their coordinates into np.array format.
+        Returns a list of dictionaries with 'name', 'coordinates' as np.array([lon, lat]), and 'color' as string.
+        """
+        with open(json_path, 'r') as f:
+            data = json.load(f)
+
+        points = data.get("points", [])
+        parsed_points = []
+
+        for point in points:
+            name = point["name"]
+            coord_str = point["coordinates"].strip("()")
+            lon_str, lat_str = coord_str.split(",")
+            lon, lat = float(lon_str), float(lat_str)
+            color = point.get("color", "black")  # default to black if missing
+
+            parsed_points.append({
+                "name": name,
+                "coordinates": np.array([lon, lat]),
+                "color": color
+            })
+
+        return parsed_points
