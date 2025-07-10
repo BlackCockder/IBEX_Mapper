@@ -13,37 +13,39 @@ class Projection:
     def __init__(self):
         pass
 
-    @staticmethod
-    def sph2cart(lon_deg, lat_deg):
-        lon = np.radians(lon_deg)
-        lat = np.radians(lat_deg)
-        x = np.cos(lat) * np.cos(lon)
-        y = np.cos(lat) * np.sin(lon)
-        z = np.sin(lat)
-        return np.vstack((x, y, z)).T            # shape: (N,3)
+    def rotate_lonlat(self, lon_rad, lat_rad, R_mat):
 
-    @staticmethod
-    def cart2sph(xyz):
-        x, y, z = xyz.T
-        lon = np.degrees(np.arctan2(y, x))
-        hyp = np.hypot(x, y)
-        lat = np.degrees(np.arctan2(z, hyp))
-        return lon, lat
+        orig_shape = lon_rad.shape
 
-    def buildCenteringRotation2(self, vec_sph_deg: np.ndarray) -> np.ndarray:
-        """
-        Zwraca macierz 3×3, która przenosi wektor (lon, lat) w stopniach
-        → na punkt (lon=0°, lat=0°).  NIE ZMIENIAMY podpisu funkcji,
-        więc wszystkie istniejące wywołania nadal działają.
-        """
-        # 1. sfera → kartezjańskie
-        v_cart = temp_configurator.convertSphericalToCartesianForPoints(vec_sph_deg)
-        # 2. wektor docelowy: środek mapy (1,0,0)
-        target = np.array([1.0, 0.0, 0.0])
-        # 3. wyznacz rotację minimalnego kąta
-        rot, _ = R.align_vectors([target], [v_cart])
-        return rot.as_matrix()
+        # 1. → Cartesian
+        xyz = temp_calculator.convertSphericalToCartesian(lat_rad.ravel(), lon_rad.ravel())   # (3, N)
 
+        # 2. rotate
+        xyz_rot = R_mat @ xyz                                         # (3, N)
+
+        # 3. → spherical
+        lon_rot, lat_rot = temp_calculator.convertCartesianToSpherical(xyz_rot[0], xyz_rot[1], xyz_rot[2])
+        lon_rot = lon_rot.reshape(orig_shape)
+        lat_rot = lat_rot.reshape(orig_shape)
+
+        # 4. wrap longitude to (-π, π]
+        lon_rot = (lon_rot + np.pi) % (2 * np.pi) - np.pi
+        return lon_rot, lat_rot
+
+    def draw_graticule(self, ax, R_mat, lon_step=30, lat_step=30, n_seg=361):
+        # parallels
+        for lat0 in np.deg2rad(np.arange(-90, 91, lat_step)):
+            lon_line = np.linspace(-np.pi, np.pi, n_seg)
+            lat_line = np.full_like(lon_line, lat0)
+            lon_r, lat_r = self.rotate_lonlat(lon_line, lat_line, R_mat)
+            ax.plot(lon_r, lat_r, lw=.6, color='grey')
+
+        # meridians
+        for lon0 in np.deg2rad(np.arange(-180, 181, lon_step)):
+            lat_line = np.linspace(-np.pi/2, np.pi/2, n_seg)
+            lon_line = np.full_like(lat_line, lon0)
+            lon_r, lat_r = self.rotate_lonlat(lon_line, lat_line, R_mat)
+            ax.plot(lon_r, lat_r, lw=.6, color='grey')
 
     def projection(self, z: np.ndarray,
                    n: int, filename: str,
@@ -54,10 +56,8 @@ class Projection:
         lat = np.linspace(np.pi/2, -np.pi/2, n)
         lon, lat = np.meshgrid(lon, lat)
 
-        lon_step, lat_step = 30, 30
-        lon_grid = np.deg2rad(np.arange(-180, 181, lon_step))
-        lat_grid = np.deg2rad(np.arange(-90, 91, lat_step))
-        graticule_handles = []
+        lon_grid = np.deg2rad(np.arange(-180, 181, 30))
+        lat_grid = np.deg2rad(np.arange(-90, 91, 30))
 
         raw_label = Path(filename).stem
         safe_label = raw_label.replace("_", " ").removesuffix("esa").lstrip("t") # for testing
@@ -66,20 +66,10 @@ class Projection:
         fig = plt.figure(figsize=(8, 6))
         ax = fig.add_subplot(111, projection="mollweide")
 
-        pcm = ax.pcolormesh(lon, lat, z, cmap="magma", shading="auto") # cmap: "viridis"
-        cbar = fig.colorbar(pcm, ax=ax, orientation="horizontal", pad=0.05)
-        cbar.set_label(safe_label)
-
         # ax.text(x=np.pi, y=np.pi/2, s=f"YEAR: {year}")
         # ax.text(x=-np.pi, y=np.pi/2, s=f"NUMBER: {number}")
 
         ax.set_title("IBEX Mapper")
-        # ax.set_xlabel("Longitude (rad)")
-        # ax.set_ylabel("Latitude (rad)")
-        # ax.set_xlim([-np.pi, np.pi])
-        # ax.set_ylim([-np.pi / 2, np.pi / 2])
-        # ax.set_aspect('auto')
-        # ax.invert_xaxis()
 
         Rotation1 = temp_configurator.buildCenteringRotation(np.array(central_coords))
         Rotation2 = temp_configurator.buildMeridianRotation(np.array(meridian_coords), Rotation1)
@@ -89,47 +79,6 @@ class Projection:
         meridian_vec = temp_configurator.convertSphericalToCartesianForPoints(np.array(central_coords))
 
         FinalRotation = Rotation2 @ Rotation1
-
-        Rotation12 = self.buildCenteringRotation2(np.array(central_coords))
-        Rotation22 = self.buildCenteringRotation2(np.array(meridian_coords))
-
-        FinalRotation2 = Rotation22 @ Rotation12
-
-        for delta in lon_grid:
-            theta_line = np.linspace(np.pi/2, -np.pi/2, 361)
-            delta_line = np.full_like(theta_line, delta)
-
-            x, y, z = temp_configurator.convertSphericalToCartesianForPoints(
-                np.vstack((np.rad2deg(delta_line),  # lon – w °, pierwszy wiersz
-                           np.rad2deg(theta_line)))  # lat – w °, drugi wiersz
-            )
-            xyz_rot = FinalRotation2 @ np.vstack((x, y, z)) #.T
-            delta_rot, theta_rot = temp_calculator.convertCartesianToSpherical(xyz_rot[0:1], xyz_rot[1:2], xyz_rot[2:3]) #temp
-
-            (h,) = ax.plot(delta_rot.flatten(), theta_rot.flatten(),
-                       lw=0.4, color="white", alpha=0.7, zorder=3)
-            graticule_handles.append(h)
-
-        for theta in lat_grid:
-            delta_line = np.linspace(-np.pi, np.pi, 361)
-            theta_line = np.full_like(delta_line, theta)
-
-            x, y, z = temp_configurator.convertSphericalToCartesianForPoints(
-                np.vstack((np.rad2deg(delta_line),  # lon – w °, pierwszy wiersz
-                           np.rad2deg(theta_line)))  # lat – w °, drugi wiersz
-            )
-            xyz_rot = FinalRotation2 @ np.vstack((x, y, z))
-            delta_rot, theta_rot = temp_calculator.convertCartesianToSpherical(xyz_rot[0:1], xyz_rot[1:2], xyz_rot[2:3])  #temp
-
-            (h,) = ax.plot(delta_rot.flatten(), theta_rot.flatten(),
-                           lw=0.4, color='white', alpha=0.7, zorder=3)
-            graticule_handles.append(h)
-
-        for h in graticule_handles:
-            h.set_visible(True)  # ukryj
-            h.set_linewidth(1.2)  # pogrub
-            h.set_color('cyan')  # zmień kolor
-
 
         rotated_central_vec = Rotation1 @ central_vec
         print(rotated_central_vec)
@@ -146,8 +95,47 @@ class Projection:
             np.array([[rotated_meridian_vec[1]]]),
             np.array([[rotated_meridian_vec[2]]])
         )
+
+        lon_c, lat_c = self.rotate_lonlat(
+            np.radians(central_coords[0]), np.radians(central_coords[1]), FinalRotation
+        )
+
+        lon_rot, lat_rot = self.rotate_lonlat(lon, lat, FinalRotation)
+
+        # draw the rotated graticule
+        # self.draw_graticule(ax, FinalRotation)
+
+        # central and meridian reference points
+        lon_c, lat_c = self.rotate_lonlat(
+            np.array([[np.radians(central_coords[0])]]),
+            np.array([[np.radians(central_coords[1])]]),
+            FinalRotation
+        )
+        lon_m, lat_m = self.rotate_lonlat(
+            np.array([[np.radians(meridian_coords[0])]]),
+            np.array([[np.radians(meridian_coords[1])]]),
+            FinalRotation
+        )
+        self.draw_graticule(ax, FinalRotation)
+
+        ax.plot(lon_c, lat_c, 'ro', ms=6)
+
         print("Rotated central point (deg):", np.rad2deg(central_lon[0, 0]), np.rad2deg(central_lat[0, 0]))
         print("Rotated meridian point (deg):", np.rad2deg(meridian_lon[0, 0]), np.rad2deg(meridian_lat[0, 0]))
+
+        pcm = ax.pcolormesh(lon, lat, z, cmap="magma", shading="auto") # cmap: "viridis"
+        cbar = fig.colorbar(pcm, ax=ax, orientation="horizontal", pad=0.05)
+        cbar.set_label(safe_label)
+
+        # ticks
+        ticks_deg = np.arange(-150, 180, 30)  # default range
+        ticks_rad = np.deg2rad(ticks_deg)
+        labels = [f"{abs(t)}°" if t != 0 else "0°" for t in ticks_deg[::-1]]
+        signs = ['' if t == 0 else ('-' if t < 0 else '') for t in ticks_deg[::-1]]
+        custom_labels = [f"{s}{l}" for s, l in zip(signs, labels)]
+        ax.set_xticks(ticks_rad)
+        ax.set_xticklabels(custom_labels)
+        ax.grid(False)
 
 
         ax.plot(central_lon[0, 0], central_lat[0, 0], 'ro', markersize=6, label="Central Point")

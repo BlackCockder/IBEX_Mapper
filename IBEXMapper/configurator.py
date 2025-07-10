@@ -10,9 +10,9 @@ class Configurator:
     def convertSphericalToCartesianForPoints(self, vector_to_convert: np.ndarray) -> np.ndarray:
         lon = np.deg2rad(vector_to_convert[0])
         lat = np.deg2rad(vector_to_convert[1])
-        x: float = np.cos(lat) * np.cos(lon)
-        y: float = np.cos(lat) * np.sin(lon)
-        z: float = np.sin(lat)
+        x = np.cos(lat) * np.cos(lon)
+        y = np.cos(lat) * np.sin(lon)
+        z = np.sin(lat)
         return np.array([x, y, z])
 
     def buildCenteringRotation(self, new_central_vector: np.ndarray) -> np.ndarray:
