@@ -1,5 +1,11 @@
 import time
 import numpy as np
+# mapper.cli.py (top of the file)
+import sys
+import os
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import IBEXMapper as ib
 
 
@@ -7,63 +13,20 @@ def main() -> None:
     mapper = ib.getObjectInstance()
 
     mapper.setDefaultConfig(mapper.generateConfigFromPartialInfo({
-        "map_accuracy": 720,
+        "map_accuracy": 400,
         "rotate": True,
         "central_point": np.array([100, 5]),
-        "meridian_point": np.array([100, 20])
+        "meridian_point": np.array([90, 20])
     }))
     # mapper.removePoint("Testing point 1")
     # mapper.removeAllPoints()
-    # mapper.addPoint("Testing point 1", (100, 30), "blue")
-    # mapper.addPoint("Testing point 2", (-100, 30), "red")
-    # mapper.addPoint("Testing point 3", (100, -30), "green")
-    # mapper.addPoint("Testing point 4", (-100, -30), "black")
-    maps = ["t2010_02.txt", "t2013_04.txt", "t2017_06.txt"]
+    mapper.addPoint("Testing point 1", (100, 30), "blue")
+    mapper.addPoint("Testing point 2", (-100, 30), "red")
+    mapper.addPoint("Testing point 3", (100, -30), "green")
+    mapper.addPoint("Testing point 4", (-100, -30), "black")
+    maps = ["t2010_02.txt"]
     for map_ins in maps:
         mapper.generateMapFromLink(map_ins)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     np.set_printoptions(precision=8, suppress=True, floatmode='fixed')
     config = mapper.formatConfigDatastructures(mapper.getDefaultConfig())
     initial_center = np.array([0, 0])
