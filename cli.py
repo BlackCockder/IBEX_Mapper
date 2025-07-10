@@ -1,21 +1,36 @@
 import time
 import numpy as np
+# mapper.cli.py (top of the file)
+import sys
+import os
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import IBEXMapper as ib
 
 
 def main() -> None:
     mapper = ib.getObjectInstance()
+
     mapper.setDefaultConfig(mapper.generateConfigFromPartialInfo({
-        "map_accuracy": 720,
+        "map_accuracy": 400,
         "rotate": True,
-        "location_of_central_point": np.array([100, 5]),
-        "meridian_point": np.array([80, 20])
+        "central_point": np.array([100, 5]),
+        "meridian_point": np.array([90, 20])
     }))
-    mapper.generateMapFromLink("t2010_02.txt")
+    # mapper.removePoint("Testing point 1")
+    # mapper.removeAllPoints()
+    mapper.addPoint("Testing point 1", (100, 30), "blue")
+    mapper.addPoint("Testing point 2", (-100, 30), "red")
+    mapper.addPoint("Testing point 3", (100, -30), "green")
+    mapper.addPoint("Testing point 4", (-100, -30), "black")
+    maps = ["t2010_02.txt"]
+    for map_ins in maps:
+        mapper.generateMapFromLink(map_ins)
     np.set_printoptions(precision=8, suppress=True, floatmode='fixed')
     config = mapper.formatConfigDatastructures(mapper.getDefaultConfig())
     initial_center = np.array([0, 0])
-    target_center = config["location_of_central_point"]
+    target_center = config["central_point"]
     meridian_vector = config["meridian_point"]
     print("-------------------------------------------------------")
     print("Vectors in degrees:")

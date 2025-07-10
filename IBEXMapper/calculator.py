@@ -67,15 +67,15 @@ class Calculator:
         else:
             return (1 / np.sqrt(2)) * (spherical_harmonic_negative + (((-1) ** abs(m)) * spherical_harmonic_positive))
 
-    def convertSphericalToCartesian(self, lon_mesh: np.ndarray, lat_mesh: np.ndarray) \
-            -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        x = np.cos(lat_mesh) * np.cos(lon_mesh)
-        y = np.cos(lat_mesh) * np.sin(lon_mesh)
-        z = np.sin(lat_mesh)
+    def convertSphericalToCartesian(self, lon: np.ndarray or float, lat: np.ndarray or float) \
+            -> tuple[np.ndarray, np.ndarray, np.ndarray] or tuple[float, float, float]:
+        x = np.cos(lat) * np.cos(lon)
+        y = np.cos(lat) * np.sin(lon)
+        z = np.sin(lat)
         return x, y, z
 
-    def convertCartesianToSpherical(self, x: np.ndarray, y: np.ndarray, z: np.ndarray) \
-            -> tuple[np.ndarray, np.ndarray]:
+    def convertCartesianToSpherical(self, x: np.ndarray or float, y: np.ndarray or float, z: np.ndarray or float) \
+            -> tuple[np.ndarray, np.ndarray] or tuple[float, float]:
         lat = np.arcsin(z)
         lon = np.arctan2(y, x)
         return lon, lat
@@ -115,4 +115,6 @@ class Calculator:
         interpolated_data = interpolator(rotated_vectors).reshape(rotated_lat.shape)
 
         return interpolated_data
-      
+
+    def combineRotation(self, original_rotation: np.ndarray, input_rotation) -> np.ndarray:
+        return input_rotation @ original_rotation

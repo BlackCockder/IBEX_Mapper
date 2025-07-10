@@ -10,14 +10,27 @@ import os
 
 
 class IBEXMapper:
+    CONFIG_DIR = "config"
+    FEATURES_DIR = "map_features"
+    CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
+    FEATURES_FILE = os.path.join(FEATURES_DIR, "map_features.json")
+
     def __init__(self, projection: Projection, calculator: Calculator, configurator: Configurator,
                  handler: Handler) -> None:
         self.projection = projection
         self.calculator = calculator
         self.configurator = configurator
         self.handler = handler
-        if not os.path.exists("config.json"):
+
+        os.makedirs(self.CONFIG_DIR, exist_ok=True)
+
+        os.makedirs(self.FEATURES_DIR, exist_ok=True)
+
+        if not os.path.exists(self.CONFIG_FILE):
             self.generateDefaultConfig()
+        if not os.path.exists(self.FEATURES_FILE):
+            with open(self.FEATURES_FILE, "w") as f:
+                json.dump({"points": [], "circles": []}, f, indent=4)
 
     def generateMapFromLink(self, file_path: str, config=None) -> None:
         imported_data = np.loadtxt(file_path, comments='#')
@@ -30,25 +43,76 @@ class IBEXMapper:
             lat = np.linspace(np.pi / 2, -np.pi / 2, config["map_accuracy"])
             lon, lat = np.meshgrid(lon, lat)
             x, y, z = self.calculator.convertSphericalToCartesian(lon, lat)
-            central_rotation = self.configurator.buildCenteringRotation(config["location_of_central_point"])
-            meridian_rotation = self.configurator.buildMeridianRotation(config["meridian_point"], central_rotation)
-            main_rotation = self.configurator.combineRotation(meridian_rotation, central_rotation).T
+            central_rotation = self.configurator.buildCenteringRotation(config["central_point"])
+            if config["central_point"][0] == config["meridian_point"][0] and config["central_point"][1] == config["meridian_point"][1]:
+                main_rotation = central_rotation.T
+            else:
+                meridian_rotation = self.configurator.buildMeridianRotation(config["meridian_point"], central_rotation)
+                main_rotation = self.calculator.combineRotation(central_rotation, meridian_rotation).T
             x_rot, y_rot, z_rot = self.calculator.rotateGridByRotation(x, y, z, main_rotation)
             lon, lat = self.calculator.convertCartesianToSpherical(x_rot, y_rot, z_rot)
             heatmap_data = self.calculator.interpolateDataForNewGrid(heatmap_data, lat, lon)
 
-        return self.projection.projection(heatmap_data, config["map_accuracy"], file_path,
-                                          config["location_of_central_point"], config["meridian_point"])
+        heatmap_data[heatmap_data < 0] = 0
+        return self.projection.projection(heatmap_data, config["map_accuracy"], file_path, config["rotate"],
+                                          config["central_point"], config["meridian_point"])
+
+    def addPoint(self, point_name: str, coordinates: tuple[float, float], color: str) -> None:
+        with open(self.FEATURES_FILE, 'r') as f:
+            data = json.load(f)
+
+        if any(p['name'] == point_name for p in data.get("points", [])):
+            print(f"Point with name '{point_name}' already exists.")
+            return
+
+        coord_str = f"({coordinates[0]}, {coordinates[1]})"
+
+        data["points"].append({
+            "name": point_name,
+            "coordinates": coord_str,
+            "color": color
+        })
+
+        with open(self.FEATURES_FILE, 'w') as f:
+            json.dump(data, f, indent=4)
+
+    def removePoint(self, point_name: str) -> None:
+        with open(self.FEATURES_FILE, 'r') as f:
+            data = json.load(f)
+
+        points = data.get("points", [])
+
+        for i, point in enumerate(points):
+            if point["name"] == point_name:
+                del points[i]
+                break
+        else:
+            print(f"Point with name '{point_name}' does not exist.")
+            return
+
+        data["points"] = points
+
+        with open(self.FEATURES_FILE, 'w') as f:
+            json.dump(data, f, indent=4)
+
+    def removeAllPoints(self) -> None:
+        with open(self.FEATURES_FILE, 'r') as f:
+            data = json.load(f)
+
+        data["points"] = []
+
+        with open(self.FEATURES_FILE, 'w') as f:
+            json.dump(data, f, indent=4)
 
     def generateDefaultConfig(self):
         default_config = {
             "map_accuracy": "400",
             "max_l_to_cache": "30",
             "rotate": "False",
-            "location_of_central_point": "(0, 0)",  # (lon, lat)
+            "central_point": "(0, 0)",  # (lon, lat)
             "meridian_point": "(0, 0)"
         }
-        with open("config.json", "w") as config:
+        with open(self.CONFIG_FILE, "w") as config:
             json.dump(default_config, config, indent=4)
 
     def setDefaultConfig(self, config: dict) -> None:
@@ -61,7 +125,7 @@ class IBEXMapper:
                 return str(value)
 
         serialized_config = {key: convert_value(value) for key, value in config.items()}
-        with open("config.json", "w") as c:
+        with open(self.CONFIG_FILE, "w") as c:
             json.dump(serialized_config, c, indent=4)
 
     def generateConfigFromPartialInfo(self, partial_config: dict) -> dict:
@@ -76,7 +140,7 @@ class IBEXMapper:
         return merged_config
 
     def getDefaultConfig(self) -> dict:
-        with open("config.json", "r") as config_file:
+        with open(self.CONFIG_FILE, "r") as config_file:
             return json.load(config_file)
 
     def resetConfig(self) -> None:
@@ -87,7 +151,7 @@ class IBEXMapper:
             "map_accuracy": int,
             "max_l_to_cache": int,
             "rotate": bool,
-            "location_of_central_point": np.ndarray,
+            "central_point": np.ndarray,
             "meridian_point": np.ndarray,
         }
         formatted_config = {}
@@ -149,8 +213,8 @@ class IBEXMapper:
             except Exception:
                 raise ValueError(f"{name} must be a 1D array-like structure of two floats (e.g., (lon, lat)).")
 
-        if "location_of_central_point" in config:
-            validate_geo_point("Central point", config["location_of_central_point"])
+        if "central_point" in config:
+            validate_geo_point("Central point", config["central_point"])
 
         if "meridian_point" in config:
             validate_geo_point("Meridian point", config["meridian_point"])
