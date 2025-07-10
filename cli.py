@@ -7,6 +7,7 @@ import argparse
 import sys
 import itertools
 import threading
+import numpy as np
 
 INTRO_MESSAGE = r"""
 
