@@ -1,8 +1,6 @@
 from __future__ import annotations
 import time
-import numpy as np
 import IBEXMapper as ib
-import cmd
 import argparse
 import sys
 import itertools
@@ -10,19 +8,16 @@ import threading
 import numpy as np
 
 INTRO_MESSAGE = r"""
-
-  ___ ____  _______  __    __  __    _    ____  ____  _____ ____  
- |_ _| __ )| ____\ \/ /   |  \/  |  / \  |  _ \|  _ \| ____|  _ \ 
-  | ||  _ \|  _|  \  /    | |\/| | / _ \ | |_) | |_) |  _| | |_) |
-  | || |_) | |___ /  \    | |  | |/ ___ \|  __/|  __/| |___|  _ < 
- |___|____/|_____/_/\_\___|_|  |_/_/   \_\_|   |_|   |_____|_| \_\ 
-                     |_____|                                      
-
+ ___ ____  _______  __    __  __    _    ____  ____  _____ ____  
+|_ _| __ )| ____\ \/ /   |  \/  |  / \  |  _ \|  _ \| ____|  _ \ 
+ | ||  _ \|  _|  \  /    | |\/| | / _ \ | |_) | |_) |  _| | |_) |
+ | || |_) | |___ /  \    | |  | |/ ___ \|  __/|  __/| |___|  _ < 
+|___|____/|_____/_/\_\___|_|  |_/_/   \_\_|   |_|   |_____|_| \_\ 
+                 Space Research Centre Polish Academy of Sciences
 """
 
 
 def _spinner(text: str, stop_event: threading.Event, interval: float = 0.1) -> None:
-    # """Continuously print  `text` followed by | / - \  until stop_event is set."""
     for ch in itertools.cycle("|/-\\"):
         if stop_event.is_set():
             break
@@ -34,26 +29,24 @@ def _spinner(text: str, stop_event: threading.Event, interval: float = 0.1) -> N
     sys.stdout.flush()
 
 def run(link: str, show_spinner: bool) -> None:
-    """Business logic with an optional spinner."""
     stop = threading.Event()
     if show_spinner:
         thread = threading.Thread(
             target=_spinner,
-            args=("Generating map", stop),
+            args=("GENERATING MAP", stop),
             daemon=True,
         )
         thread.start()
 
-    # ------------- long-running IBEX call -----------------
     mapper = ib.getObjectInstance()
     mapper.generateMapFromLink(link)
-    # -------------------------------------------------------
 
     if show_spinner:
         stop.set()
         thread.join()
-        print("Map generated.")  # prints on a clean line
+        print("MAP GENERATED")
 
+# args.link = "t2010_02.txt"
 
 # def run(link) -> None:
 #     mapper = ib.getObjectInstance()
@@ -156,26 +149,24 @@ def run(link: str, show_spinner: bool) -> None:
 def cli() -> None:
     parser = argparse.ArgumentParser(
         prog="ib-map",
-        description="Generuje mapę na podstawie pliku/URL-a z danymi IBEX",
+        description="Generates a map based on the IBEX data file",
     )
     parser.add_argument(
         "link",
-        help="Ścieżka lub URL do pliku (np. t2010_02.txt)",
+        help="Path to the file (e.g., t2010_02.txt))",
     )
     parser.add_argument(
         "-q", "--quiet",
         action="store_true",
-        help="Wyłącz baner i informacje o czasie wykonania",
+        help="Disable banner and execution time information",
     )
     parser.add_argument(
         "-s", "--spinner",
         action="store_true",
         default=True,          # show spinner unless --quiet
-        help="Pokaż animowany wskaźnik postępu (domyślnie włączony)",
+        help="Show animated progress indicator (enabled by default)",
     )
     args = parser.parse_args()
-
-    args.link = "t2010_02.txt"
 
     # Suppress spinner if user explicitly asked for --quiet
     show_spinner = args.spinner and not args.quiet
