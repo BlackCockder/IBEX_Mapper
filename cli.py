@@ -8,7 +8,7 @@ def main() -> None:
 
     mapper.setDefaultConfig(mapper.generateConfigFromPartialInfo({
         "map_accuracy": 400,
-        "rotate": False,
+        "rotate": True,
         "central_point": np.array([100, 5]),
         "meridian_point": np.array([100, 20])
     }))
