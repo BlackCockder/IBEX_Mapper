@@ -1,30 +1,60 @@
+from __future__ import annotations
 import time
-import numpy as np
 import IBEXMapper as ib
+import argparse
+import sys
+import itertools
+import threading
+import numpy as np
+
+INTRO_MESSAGE = r"""
+ ___ ____  _______  __    __  __    _    ____  ____  _____ ____  
+|_ _| __ )| ____\ \/ /   |  \/  |  / \  |  _ \|  _ \| ____|  _ \ 
+ | ||  _ \|  _|  \  /    | |\/| | / _ \ | |_) | |_) |  _| | |_) |
+ | || |_) | |___ /  \    | |  | |/ ___ \|  __/|  __/| |___|  _ < 
+|___|____/|_____/_/\_\___|_|  |_/_/   \_\_|   |_|   |_____|_| \_\ 
+                 Space Research Centre Polish Academy of Sciences
+"""
 
 
-def main() -> None:
+def _spinner(text: str, stop_event: threading.Event, interval: float = 0.1) -> None:
+    for ch in itertools.cycle("|/-\\"):
+        if stop_event.is_set():
+            break
+        sys.stdout.write(f"\r{text} {ch}")
+        sys.stdout.flush()
+        time.sleep(interval)
+    # Clear the line before exiting
+    sys.stdout.write("\r" + " " * (len(text) + 2) + "\r")
+    sys.stdout.flush()
+
+def run(link: str, show_spinner: bool) -> None:
+    stop = threading.Event()
+    if show_spinner:
+        thread = threading.Thread(
+            target=_spinner,
+            args=("GENERATING MAP", stop),
+            daemon=True,
+        )
+        thread.start()
+
     mapper = ib.getObjectInstance()
+    mapper.generateMapFromLink(link)
 
-    mapper.setDefaultConfig(mapper.generateConfigFromPartialInfo({
-        "map_accuracy": 400,
-        "rotate": True,
-        "central_point": np.array([100, 5]),
-        "meridian_point": np.array([100, 20])
-    }))
-    # mapper.removePoint("Testing point 1")
-    # mapper.removeAllPoints()
-    mapper.addPoint("Testing point 1", (100, 30), "blue")
-    mapper.addPoint("Testing point 2", (-100, 30), "red")
-    mapper.addPoint("Testing point 3", (100, -30), "green")
-    mapper.addPoint("Testing point 4", (-100, -30), "black")
-    maps = ["t2010_02.txt"]
-    for map_ins in maps:
-        mapper.generateMapFromLink(map_ins)
+    if show_spinner:
+        stop.set()
+        thread.join()
+        print("MAP GENERATED")
+
+# args.link = "t2010_02.txt"
+
+# def run(link) -> None:
+#     mapper = ib.getObjectInstance()
+#     mapper.generateMapFromLink(link) # "t2010_02.txt"
     # np.set_printoptions(precision=8, suppress=True, floatmode='fixed')
-    # config = mapper.formatConfigDatastructures(mapper.getDefaultConfig())
+    # config = mapper.def_config
     # initial_center = np.array([0, 0])
-    # target_center = config["central_point"]
+    # target_center = config["location_of_central_point"]
     # meridian_vector = config["meridian_point"]
     # print("-------------------------------------------------------")
     # print("Vectors in degrees:")
@@ -115,8 +145,45 @@ def main() -> None:
     # print(f"Target center vector: {target_center_in_cartesian_after_combined_rotation}")
     # print(f"Meridian vector: {meridian_vector_in_cartesian_after_combined_rotation}")
 
+#---------------
+def cli() -> None:
+    parser = argparse.ArgumentParser(
+        prog="ib-map",
+        description="Generates a map based on the IBEX data file",
+    )
+    parser.add_argument(
+        "link",
+        help="Path to the file (e.g., t2010_02.txt))",
+    )
+    parser.add_argument(
+        "-q", "--quiet",
+        action="store_true",
+        help="Disable banner and execution time information",
+    )
+    parser.add_argument(
+        "-s", "--spinner",
+        action="store_true",
+        default=True,          # show spinner unless --quiet
+        help="Show animated progress indicator (enabled by default)",
+    )
+    args = parser.parse_args()
 
+    # Suppress spinner if user explicitly asked for --quiet
+    show_spinner = args.spinner and not args.quiet
+
+    if not args.quiet:
+        print(INTRO_MESSAGE)
+
+    t0 = time.time()
+    run(args.link, show_spinner)
+    if not args.quiet:
+        print(f"--- {time.time() - t0:.2f} s ---")
+
+
+#--------------
 if __name__ == "__main__":
-    start_time = time.time()
-    main()
-    print("--- %s seconds ---" % (round(time.time() - start_time, 2)))
+    # start_time = time.time()
+    # main()
+    # print("--- %s seconds ---" % (round(time.time() - start_time, 2)))
+    cli()
+    

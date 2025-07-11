@@ -6,7 +6,7 @@ from .calculator import Calculator
 class Configurator:
     def __init__(self, calculator: Calculator):
         self.calculator = calculator
-
+        
     def buildCenteringRotation(self, new_central_vector: np.ndarray) -> np.ndarray:
         current_vec = np.array([[1., 0., 0.]])
         new_central_vector = self.correctEllipticalVectorsEdgesCases(new_central_vector)
