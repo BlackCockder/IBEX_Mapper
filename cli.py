@@ -39,6 +39,10 @@ def run(link: str, show_spinner: bool) -> None:
         thread.start()
 
     mapper = ib.getObjectInstance()
+    mapper.addPoint("Testing point 1", (100, 30), "blue")
+    mapper.addPoint("Testing point 2", (-100, 30), "red")
+    mapper.addPoint("Testing point 3", (100, -30), "green")
+    mapper.addPoint("Testing point 4", (-100, -30), "black")
     mapper.generateMapFromLink(link)
 
     if show_spinner:
