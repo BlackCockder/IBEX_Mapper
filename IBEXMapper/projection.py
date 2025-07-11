@@ -3,22 +3,23 @@ import numpy as np
 from pathlib import Path
 from .configurator import Configurator
 from .calculator import Calculator
-from matplotlib.offsetbox import AnchoredText
+from matplotlib.offsetbox import AnchoredText, OffsetImage, AnnotationBbox
 import matplotlib.image as mpimg
-from matplotlib.offsetbox import OffsetImage, AnnotationBbox
-from scipy.spatial.transform import Rotation as R
-
-temp_calculator = Calculator()
-temp_configurator = Configurator(temp_calculator)
+import json
+import os
 
 
 class Projection:
-    def __init__(self):
-        pass
+
+
+
+
+    def __init__(self, calculator: Calculator, configurator: Configurator) -> None:
+        self.calculator = calculator
+        self.configurator = configurator
 
     #wip
-    @staticmethod
-    def _split_at_wrap(lon_r, lat_r, thresh=np.pi):
+    def _split_at_wrap(self, lon_r, lat_r, thresh=np.pi):
         """Return copies of *lon_r*, *lat_r* with NaNs inserted wherever the curve
         crosses the ±π seam, so Matplotlib starts a new segment there."""
         jump = np.abs(np.diff(lon_r)) > thresh
@@ -34,22 +35,22 @@ class Projection:
     def rotate_lonlat(self, lon_rad, lat_rad, R_mat):
         orig_shape = lon_rad.shape  # keep grid shape
 
-        # 1.  lon/lat  →  Cartesian
+        # lon/lat -> cartesian
         x, y, z = temp_calculator.convertSphericalToCartesian(
-            lon_rad.ravel(),  # λ
-            lat_rad.ravel()  # φ
+            lon_rad.ravel(),
+            lat_rad.ravel()
         )
-        xyz = np.vstack([x, y, z])  # (3, N)
+        xyz = np.vstack([x, y, z]) # (3, N)
 
-        # 2. rotate every point
-        xyz_rot = R_mat @ xyz  # (3, N)
+        # rotate every point
+        xyz_rot = R_mat @ xyz # (3, N)
 
-        # 3. Cartesian  →  lon/lat
+        # cartesian -> lon/lat
         lon_rot, lat_rot = temp_calculator.convertCartesianToSpherical(
             xyz_rot[0], xyz_rot[1], xyz_rot[2]
         )
 
-        # 4. reshape and wrap to (−π, π]
+        # reshape and wrap to (-pi, pi]
         lon_rot = lon_rot.reshape(orig_shape)
         lat_rot = lat_rot.reshape(orig_shape)
         lon_rot = (lon_rot + np.pi) % (2 * np.pi) - np.pi
@@ -63,7 +64,7 @@ class Projection:
             lat_line = np.full_like(lon_line, lat0)
             lon_r, lat_r = self.rotate_lonlat(lon_line, lat_line, R_mat)
             lon_r, lat_r = self._split_at_wrap(lon_r, lat_r)   # ← NEW
-            ax.plot(lon_r, lat_r, lw=.8, color='white')
+            ax.plot(-lon_r, lat_r, lw=.4, color='#E6DAA6')
 
         # meridians
         for lon0 in np.deg2rad(np.arange(-180, 181, lon_step)):
@@ -71,11 +72,12 @@ class Projection:
             lon_line = np.full_like(lat_line, lon0)
             lon_r, lat_r = self.rotate_lonlat(lon_line, lat_line, R_mat)
             lon_r, lat_r = self._split_at_wrap(lon_r, lat_r)   # ← NEW
-            ax.plot(lon_r, lat_r, lw=.8, color='white')
+            ax.plot(-lon_r, lat_r, lw=.4, color='#E6DAA6')
 
 
     def projection(self, z: np.ndarray,
                    n: int, filename: str,
+                   rotate: bool,
                    central_coords: tuple[float, float],
                    meridian_coords: tuple[float, float]) -> None:
 
@@ -93,34 +95,58 @@ class Projection:
         # ax.text(x=-np.pi, y=np.pi/2, s=f"NUMBER: {number}")
         ax.set_title("IBEX Mapper")
 
-        Rotation1 = temp_configurator.buildCenteringRotation(np.array(central_coords))
-        Rotation2 = temp_configurator.buildMeridianRotation(np.array(meridian_coords), Rotation1)
-        FinalRotation = Rotation2 @ Rotation1
+        Rotation1 = self.configurator.buildCenteringRotation(np.array(central_coords))
+        Rotation2 = self.configurator.buildMeridianRotation(np.array(meridian_coords), Rotation1)
 
-        central_vec = temp_configurator.convertSphericalToCartesianForPoints(np.array(central_coords))
-        meridian_vec = temp_configurator.convertSphericalToCartesianForPoints(np.array(meridian_coords))
+        central_vector_point = self.calculator.convertSphericalToCartesian(np.deg2rad(central_coords[0]), np.deg2rad(central_coords[1]))
+        meridian_vector_point = self.calculator.convertSphericalToCartesian(np.deg2rad(meridian_coords[0]), np.deg2rad(meridian_coords[1]))
 
-        rotated_central_vec = Rotation1 @ central_vec
-        print(rotated_central_vec)
-        rotated_meridian_vec = FinalRotation @ meridian_vec
+        FinalRotation = self.calculator.combineRotation(Rotation1, Rotation2)
 
-        central_lon, central_lat = temp_calculator.convertCartesianToSpherical(
-            np.array([[rotated_central_vec[0]]]),
-            np.array([[rotated_central_vec[1]]]),
-            np.array([[rotated_central_vec[2]]])
+        rotated_central_vec = Rotation1 @ central_vector_point
+        rotated_meridian_vec = FinalRotation @ meridian_vector_point
+
+        central_lon, central_lat = self.calculator.convertCartesianToSpherical(
+            np.array([rotated_central_vec[0]]),
+            np.array([rotated_central_vec[1]]),
+            np.array([rotated_central_vec[2]])
         )
 
-        meridian_lon, meridian_lat = temp_calculator.convertCartesianToSpherical(
-            np.array([[rotated_meridian_vec[0]]]),
-            np.array([[rotated_meridian_vec[1]]]),
-            np.array([[rotated_meridian_vec[2]]])
+        meridian_lon, meridian_lat = self.calculator.convertCartesianToSpherical(
+            np.array([rotated_meridian_vec[0]]),
+            np.array([rotated_meridian_vec[1]]),
+            np.array([rotated_meridian_vec[2]])
         )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         # wip
         self.draw_graticule(ax, FinalRotation)
 
         # watermark
-        logo = mpimg.imread("logo_ibex.png")
+        logo = mpimg.imread("public\logo_ibex.png")
         zoom = 0.3
         imagebox = OffsetImage(logo, zoom=zoom)
         ab = AnnotationBbox(
@@ -132,8 +158,6 @@ class Projection:
         )
         ab.set_zorder(10)  # draw on top of everything else
         ax.add_artist(ab)
-
-
 
         at = AnchoredText(
             "2025 IBEX Mapper",  # text to display
@@ -161,13 +185,14 @@ class Projection:
         ax.set_xticklabels(custom_labels)
         ax.grid(False)
 
+
         pcm = ax.pcolormesh(lon, lat, z, cmap="magma", shading="auto") # cmap: "viridis"
         cbar = fig.colorbar(pcm, ax=ax, orientation="horizontal", pad=0.05)
         cbar.set_label(safe_label)
 
-        ax.plot(central_lon[0, 0], central_lat[0, 0], 'ro', markersize=6, label="Central Point")
-        ax.plot(meridian_lon[0, 0], meridian_lat[0, 0], 'bo', markersize=6, label="Meridian Point")
+        ax.plot(central_lon[0], central_lat[0], 'ro', markersize=6, label="Central Point")
+        ax.plot(meridian_lon[0], meridian_lat[0], 'bo', markersize=6, label="Meridian Point")
         ax.legend(loc='lower left')
         plt.tight_layout()
-        plt.savefig("IBEX_Mapper.pdf", format='pdf', dpi=n)
+        plt.savefig(os.path.join(self.OUTPUT_DIR, f"file_{filename}__res{n}.pdf"), format='pdf', dpi=n)
         plt.show()
