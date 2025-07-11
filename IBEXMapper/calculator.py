@@ -34,7 +34,7 @@ class Calculator:
         main_matrix = np.tensordot(coefficients, np.stack(spherical_harmonics_values_matrix), axes=1).T
 
         # Matrix realignment
-        return np.fliplr(main_matrix)
+        return np.roll(np.fliplr(main_matrix), shift=dpi // 2, axis=1)
                             
     def calculateSphericalHarmonicsDataForSetDPI(self, dpi, target_max_l):
         """

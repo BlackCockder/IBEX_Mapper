@@ -1,9 +1,11 @@
-import json
 import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
 from .configurator import Configurator
 from .calculator import Calculator
+from matplotlib.offsetbox import AnchoredText, OffsetImage, AnnotationBbox
+import matplotlib.image as mpimg
+import json
 import os
 
 
@@ -11,9 +13,67 @@ class Projection:
     FEATURES_DIR = "map_features"
     FEATURES_FILE = os.path.join(FEATURES_DIR, "map_features.json")
     OUTPUT_DIR = "output"
+
     def __init__(self, calculator: Calculator, configurator: Configurator):
         self.calculator = calculator
         self.configurator = configurator
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     def projection(self, z: np.ndarray,
                    n: int, filename: str,
@@ -25,11 +85,6 @@ class Projection:
         lat = np.linspace(np.pi/2, -np.pi/2, n)
         lon, lat = np.meshgrid(lon, lat)
 
-        lon_step, lat_step = 30, 30
-        lon_grid = np.deg2rad(np.arange(-180, 181, lon_step))
-        lat_grid = np.deg2rad(np.arange(-90, 91, lat_step))
-        graticule_handles = []
-
         raw_label = Path(filename).stem
         safe_label = raw_label.replace("_", " ").removesuffix("esa").lstrip("t") # for testing
         # rib, ylm, coeff, year, number = safe_label.split(" ")
@@ -37,20 +92,8 @@ class Projection:
         fig = plt.figure(figsize=(8, 6))
         ax = fig.add_subplot(111, projection="mollweide")
 
-        pcm = ax.pcolormesh(lon, lat, z, cmap="viridis", shading="auto") # cmap: "viridis"
-        cbar = fig.colorbar(pcm, ax=ax, orientation="horizontal", pad=0.05)
-        cbar.set_label(safe_label)
-
-        # ax.text(x=np.pi, y=np.pi/2, s=f"YEAR: {year}")
-        # ax.text(x=-np.pi, y=np.pi/2, s=f"NUMBER: {number}")
 
         ax.set_title("IBEX Mapper")
-        # ax.set_xlabel("Longitude (rad)")
-        # ax.set_ylabel("Latitude (rad)")
-        # ax.set_xlim([-np.pi, np.pi])
-        # ax.set_ylim([-np.pi / 2, np.pi / 2])
-        # ax.set_aspect('auto')
-        # ax.invert_xaxis()
 
         Rotation1 = self.configurator.buildCenteringRotation(np.array(central_coords))
         Rotation2 = self.configurator.buildMeridianRotation(np.array(meridian_coords), Rotation1)
@@ -59,10 +102,6 @@ class Projection:
         meridian_vector_point = self.calculator.convertSphericalToCartesian(np.deg2rad(meridian_coords[0]), np.deg2rad(meridian_coords[1]))
 
         FinalRotation = self.calculator.combineRotation(Rotation1, Rotation2)
-
-        for delta in lon_grid:
-            theta_line = np.linspace(np.pi/2, -np.pi/2, 361)
-            delta_line = np.full_like(theta_line, delta)
 
         rotated_central_vec = Rotation1 @ central_vector_point
         rotated_meridian_vec = FinalRotation @ meridian_vector_point
@@ -79,10 +118,6 @@ class Projection:
             np.array([rotated_meridian_vec[2]])
         )
 
-
-        ax.plot(central_lon[0], central_lat[0], 'ro', markersize=6, label="Central Point")
-        ax.plot(meridian_lon[0], meridian_lat[0], 'bo', markersize=6, label="Meridian Point")
-
         parsed_points = self.load_points(self.FEATURES_FILE)
 
         for point in parsed_points:
@@ -94,19 +129,69 @@ class Projection:
 
                 rotated_cartesian = FinalRotation @ point_in_cartesian_coordinates
 
-                spherical[0], spherical[1] = self.calculator.convertCartesianToSpherical(
+                lon_spherical, lat_spherical = self.calculator.convertCartesianToSpherical(
                     np.array([rotated_cartesian[0]]),
                     np.array([rotated_cartesian[1]]),
                     np.array([rotated_cartesian[2]])
                 )
+                ax.plot(-lon_spherical[0], lat_spherical[0], 'o', markersize=5, color=color)
+                ax.text(-lon_spherical[0], lat_spherical[0], f' {name}', fontsize=7, color=color)
             else:
                 spherical[0] = np.deg2rad(spherical[0])
                 spherical[1] = np.deg2rad(spherical[1])
+                ax.plot(-spherical[0], spherical[1], 'o', markersize=5, color=color)
+                ax.text(-spherical[0], spherical[1], f' {name}', fontsize=7, color=color)
 
-            ax.plot(spherical[0], spherical[1], 'o', markersize=5, color=color)
-            ax.text(spherical[0], spherical[1], f' {name}', fontsize=7, color=color)
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        pcm = ax.pcolormesh(lon, lat, z, cmap="magma", shading="auto") # cmap: "viridis"
+        cbar = fig.colorbar(pcm, ax=ax, orientation="horizontal", pad=0.05)
+        cbar.set_label(safe_label)
+
+        ax.plot(central_lon[0], central_lat[0], 'ro', markersize=6, label="Central Point")
+        ax.plot(meridian_lon[0], meridian_lat[0], 'bo', markersize=6, label="Meridian Point")
         ax.legend(loc='lower left')
         plt.tight_layout()
         plt.savefig(os.path.join(self.OUTPUT_DIR, f"file_{filename}__res{n}.pdf"), format='pdf', dpi=n)
