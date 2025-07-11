@@ -60,10 +60,6 @@ class Projection:
 
         FinalRotation = self.calculator.combineRotation(Rotation1, Rotation2)
 
-        for delta in lon_grid:
-            theta_line = np.linspace(np.pi/2, -np.pi/2, 361)
-            delta_line = np.full_like(theta_line, delta)
-
         rotated_central_vec = Rotation1 @ central_vector_point
         rotated_meridian_vec = FinalRotation @ meridian_vector_point
 
@@ -94,17 +90,18 @@ class Projection:
 
                 rotated_cartesian = FinalRotation @ point_in_cartesian_coordinates
 
-                spherical[0], spherical[1] = self.calculator.convertCartesianToSpherical(
+                lon_spherical, lat_spherical = self.calculator.convertCartesianToSpherical(
                     np.array([rotated_cartesian[0]]),
                     np.array([rotated_cartesian[1]]),
                     np.array([rotated_cartesian[2]])
                 )
+                ax.plot(-lon_spherical[0], lat_spherical[0], 'o', markersize=5, color=color)
+                ax.text(-lon_spherical[0], lat_spherical[0], f' {name}', fontsize=7, color=color)
             else:
                 spherical[0] = np.deg2rad(spherical[0])
                 spherical[1] = np.deg2rad(spherical[1])
-
-            ax.plot(spherical[0], spherical[1], 'o', markersize=5, color=color)
-            ax.text(spherical[0], spherical[1], f' {name}', fontsize=7, color=color)
+                ax.plot(-spherical[0], spherical[1], 'o', markersize=5, color=color)
+                ax.text(-spherical[0], spherical[1], f' {name}', fontsize=7, color=color)
 
 
         ax.legend(loc='lower left')
