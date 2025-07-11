@@ -34,7 +34,7 @@ class Calculator:
         main_matrix = np.tensordot(coefficients, np.stack(spherical_harmonics_values_matrix), axes=1).T
 
         # Matrix realignment
-        return np.fliplr(main_matrix)
+        return np.roll(np.fliplr(main_matrix), shift=dpi // 2, axis=1)
                             
     def calculateSphericalHarmonicsDataForSetDPI(self, dpi, target_max_l):
         """
@@ -67,33 +67,30 @@ class Calculator:
         else:
             return (1 / np.sqrt(2)) * (spherical_harmonic_negative + (((-1) ** abs(m)) * spherical_harmonic_positive))
 
-    def convertSphericalToCartesian(self, lon_mesh: np.ndarray, lat_mesh: np.ndarray) \
-            -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        x = np.cos(lat_mesh) * np.cos(lon_mesh)
-        y = np.cos(lat_mesh) * np.sin(lon_mesh)
-        z = np.sin(lat_mesh)
+    def convertSphericalToCartesian(self, lon: np.ndarray or float, lat: np.ndarray or float) \
+            -> tuple[np.ndarray, np.ndarray, np.ndarray] or tuple[float, float, float]:
+        x = np.cos(lat) * np.cos(lon)
+        y = np.cos(lat) * np.sin(lon)
+        z = np.sin(lat)
         return x, y, z
 
-    def convertCartesianToSpherical(self, x: np.ndarray, y: np.ndarray, z: np.ndarray) \
-            -> tuple[np.ndarray, np.ndarray]:
+    def convertCartesianToSpherical(self, x: np.ndarray or float, y: np.ndarray or float, z: np.ndarray or float) \
+            -> tuple[np.ndarray, np.ndarray] or tuple[float, float]:
         lat = np.arcsin(z)
         lon = np.arctan2(y, x)
         return lon, lat
 
-    def rotateGridByTwoRotations(self,
-                                 x_mesh: np.ndarray,
-                                 y_mesh: np.ndarray,
-                                 z_mesh: np.ndarray,
-                                 central_rotation: np.ndarray,
-                                 meridian_rotation: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-
-        full_rotation = meridian_rotation @ central_rotation
+    def rotateGridByRotation(self,
+                             x_mesh: np.ndarray,
+                             y_mesh: np.ndarray,
+                             z_mesh: np.ndarray,
+                             rotation: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
 
         original_shape = x_mesh.shape
 
         cartesian_coordinates_matrix = np.stack((x_mesh, y_mesh, z_mesh), axis=-1).reshape(-1, 3)
 
-        rotated_cartesian_coordinates_matrix = cartesian_coordinates_matrix @ full_rotation
+        rotated_cartesian_coordinates_matrix = cartesian_coordinates_matrix @ rotation.T
 
         rot_x_mesh = rotated_cartesian_coordinates_matrix[:, 0].reshape(original_shape)
         rot_y_mesh = rotated_cartesian_coordinates_matrix[:, 1].reshape(original_shape)
@@ -101,7 +98,10 @@ class Calculator:
 
         return rot_x_mesh, rot_y_mesh, rot_z_mesh
 
-    def interpolateDataForNewGrid(self, data_to_interpolate: np.ndarray, rotated_lat: np.ndarray, rotated_lon: np.ndarray) -> np.ndarray:
+    def interpolateDataForNewGrid(self,
+                                  data_to_interpolate: np.ndarray,
+                                  rotated_lat: np.ndarray,
+                                  rotated_lon: np.ndarray) -> np.ndarray:
 
         dpi = data_to_interpolate.shape[0]
 
@@ -110,9 +110,11 @@ class Calculator:
 
         interpolator = RegularGridInterpolator((lat, lon), data_to_interpolate, method='linear', bounds_error=False, fill_value=np.nan)
 
-        points = np.stack((rotated_lat.ravel(), rotated_lon.ravel()), axis=-1)
+        rotated_vectors = np.stack((rotated_lat.ravel(), rotated_lon.ravel()), axis=-1)
 
-        interpolated = interpolator(points).reshape(rotated_lat.shape)
+        interpolated_data = interpolator(rotated_vectors).reshape(rotated_lat.shape)
 
-        return interpolated
-      
+        return interpolated_data
+
+    def combineRotation(self, original_rotation: np.ndarray, input_rotation) -> np.ndarray:
+        return input_rotation @ original_rotation

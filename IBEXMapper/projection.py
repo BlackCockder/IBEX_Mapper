@@ -10,11 +10,11 @@ import os
 
 
 class Projection:
+    FEATURES_DIR = "map_features"
+    FEATURES_FILE = os.path.join(FEATURES_DIR, "map_features.json")
+    OUTPUT_DIR = "output"
 
-
-
-
-    def __init__(self, calculator: Calculator, configurator: Configurator) -> None:
+    def __init__(self, calculator: Calculator, configurator: Configurator):
         self.calculator = calculator
         self.configurator = configurator
 
@@ -74,12 +74,11 @@ class Projection:
             lon_r, lat_r = self._split_at_wrap(lon_r, lat_r)   # ← NEW
             ax.plot(-lon_r, lat_r, lw=.4, color='#E6DAA6')
 
-
     def projection(self, z: np.ndarray,
                    n: int, filename: str,
                    rotate: bool,
-                   central_coords: tuple[float, float],
-                   meridian_coords: tuple[float, float]) -> None:
+                   central_coords: np.ndarray,
+                   meridian_coords: np.ndarray) -> None:
 
         lon = np.linspace(-np.pi, np.pi, n)
         lat = np.linspace(np.pi/2, -np.pi/2, n)
@@ -118,29 +117,29 @@ class Projection:
             np.array([rotated_meridian_vec[2]])
         )
 
+        parsed_points = self.load_points(self.FEATURES_FILE)
 
+        for point in parsed_points:
+            name = point["name"]
+            spherical = point["coordinates"]
+            color = point["color"]
+            if rotate:
+                point_in_cartesian_coordinates = self.calculator.convertSphericalToCartesian(np.deg2rad(spherical[0]), np.deg2rad(spherical[1]))
 
+                rotated_cartesian = FinalRotation @ point_in_cartesian_coordinates
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                lon_spherical, lat_spherical = self.calculator.convertCartesianToSpherical(
+                    np.array([rotated_cartesian[0]]),
+                    np.array([rotated_cartesian[1]]),
+                    np.array([rotated_cartesian[2]])
+                )
+                ax.plot(-lon_spherical[0], lat_spherical[0], 'o', markersize=5, color=color)
+                ax.text(-lon_spherical[0], lat_spherical[0], f' {name}', fontsize=7, color=color)
+            else:
+                spherical[0] = np.deg2rad(spherical[0])
+                spherical[1] = np.deg2rad(spherical[1])
+                ax.plot(-spherical[0], spherical[1], 'o', markersize=5, color=color)
+                ax.text(-spherical[0], spherical[1], f' {name}', fontsize=7, color=color)
 
         # wip
         self.draw_graticule(ax, FinalRotation)
@@ -185,7 +184,6 @@ class Projection:
         ax.set_xticklabels(custom_labels)
         ax.grid(False)
 
-
         pcm = ax.pcolormesh(lon, lat, z, cmap="magma", shading="auto") # cmap: "viridis"
         cbar = fig.colorbar(pcm, ax=ax, orientation="horizontal", pad=0.05)
         cbar.set_label(safe_label)
@@ -196,3 +194,29 @@ class Projection:
         plt.tight_layout()
         plt.savefig(os.path.join(self.OUTPUT_DIR, f"file_{filename}__res{n}.pdf"), format='pdf', dpi=n)
         plt.show()
+
+    def load_points(self, json_path: str):
+        """
+        Loads points from JSON file and parses their coordinates into np.array format.
+        Returns a list of dictionaries with 'name', 'coordinates' as np.array([lon, lat]), and 'color' as string.
+        """
+        with open(json_path, 'r') as f:
+            data = json.load(f)
+
+        points = data.get("points", [])
+        parsed_points = []
+
+        for point in points:
+            name = point["name"]
+            coord_str = point["coordinates"].strip("()")
+            lon_str, lat_str = coord_str.split(",")
+            lon, lat = float(lon_str), float(lat_str)
+            color = point.get("color", "black")  # default to black if missing
+
+            parsed_points.append({
+                "name": name,
+                "coordinates": np.array([lon, lat]),
+                "color": color
+            })
+
+        return parsed_points
