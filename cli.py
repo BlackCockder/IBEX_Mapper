@@ -39,111 +39,21 @@ def run(link: str, show_spinner: bool) -> None:
         thread.start()
 
     mapper = ib.getObjectInstance()
+    mapper.setDefaultConfig(mapper.generateConfigFromPartialInfo({
+        "map_accuracy": 400,
+        "central_point": (-75, 10),
+        "meridian_point": (-65, 30)
+    }))
+    mapper.addPoint("Testing point 1", (100, 30), "blue")
+    mapper.addPoint("Testing point 2", (-100, 30), "red")
+    mapper.addPoint("Testing point 3", (100, -30), "green")
+    mapper.addPoint("Testing point 4", (-100, -30), "black")
     mapper.generateMapFromLink(link)
 
     if show_spinner:
         stop.set()
         thread.join()
         print("MAP GENERATED")
-
-# args.link = "t2010_02.txt"
-
-# def run(link) -> None:
-#     mapper = ib.getObjectInstance()
-#     mapper.generateMapFromLink(link) # "t2010_02.txt"
-    # np.set_printoptions(precision=8, suppress=True, floatmode='fixed')
-    # config = mapper.def_config
-    # initial_center = np.array([0, 0])
-    # target_center = config["location_of_central_point"]
-    # meridian_vector = config["meridian_point"]
-    # print("-------------------------------------------------------")
-    # print("Vectors in degrees:")
-    # print(f"Central vector: {initial_center}")
-    # print(f"Target center vector: {target_center}")
-    # print(f"Meridian vector: {meridian_vector}")
-    # initial_center_in_cartesian = mapper.configurator.convertSphericalToCartesianForPoints(initial_center)
-    # target_center_in_cartesian = mapper.configurator.convertSphericalToCartesianForPoints(target_center)
-    # meridian_vector_in_cartesian = mapper.configurator.convertSphericalToCartesianForPoints(meridian_vector)
-    # print("-------------------------------------------------------")
-    # print("Vectors in cartesian coordinates: ")
-    # print(f"Central vector: {initial_center_in_cartesian}")
-    # print(f"Target center vector: {target_center_in_cartesian}")
-    # print(f"Meridian vector: {meridian_vector_in_cartesian}")
-    # central_rotation = mapper.configurator.buildCenteringRotation(target_center)
-    # meridian_rotation = mapper.configurator.buildMeridianRotation(meridian_vector, central_rotation)
-    # print("-------------------------------------------------------")
-    # print("Rotations: ")
-    # print(f"Central rotation: \n{central_rotation}")
-    # print(f"Meridian rotation: \n{meridian_rotation}")
-    # initial_center_in_cartesian_after_1st_rotation = central_rotation @ initial_center_in_cartesian
-    # target_center_in_cartesian_after_1st_rotation = central_rotation @ target_center_in_cartesian
-    # meridian_vector_in_cartesian_after_1st_rotation = central_rotation @ meridian_vector_in_cartesian
-    # print("-------------------------------------------------------")
-    # print("Vectors after first rotation in spherical coordinates: ")
-    # print(f"Initial central vector: {np.rad2deg(np.array(mapper.calculator
-    #       .convertCartesianToSpherical(initial_center_in_cartesian_after_1st_rotation[0],
-    #                                    initial_center_in_cartesian_after_1st_rotation[1],
-    #                                    initial_center_in_cartesian_after_1st_rotation[2])))}")
-    # print(f"Target center vector: {np.rad2deg(np.array(mapper.calculator
-    #       .convertCartesianToSpherical(target_center_in_cartesian_after_1st_rotation[0],
-    #                                    target_center_in_cartesian_after_1st_rotation[1],
-    #                                    target_center_in_cartesian_after_1st_rotation[2])))}")
-    # print(f"Meridian vector: {np.rad2deg(np.array(mapper.calculator
-    #       .convertCartesianToSpherical(meridian_vector_in_cartesian_after_1st_rotation[0],
-    #                                    meridian_vector_in_cartesian_after_1st_rotation[1],
-    #                                    meridian_vector_in_cartesian_after_1st_rotation[2])))}")
-    # print("-------------------------------------------------------")
-    # print("Vectors after first rotation in cartesian coordinates: ")
-    # print(f"Central vector: {initial_center_in_cartesian_after_1st_rotation}")
-    # print(f"Target center vector: {target_center_in_cartesian_after_1st_rotation}")
-    # print(f"Meridian vector: {meridian_vector_in_cartesian_after_1st_rotation}")
-    # initial_center_in_cartesian_after_2nd_rotation = meridian_rotation @ initial_center_in_cartesian_after_1st_rotation
-    # target_center_in_cartesian_after_2nd_rotation = meridian_rotation @ target_center_in_cartesian_after_1st_rotation
-    # meridian_vector_in_cartesian_after_2nd_rotation = meridian_rotation @ meridian_vector_in_cartesian_after_1st_rotation
-    # print("-------------------------------------------------------")
-    # print("Vectors after second rotation in spherical coordinates: ")
-    # print(f"Initial central vector: {np.rad2deg(np.array(mapper.calculator
-    #                                                      .convertCartesianToSpherical(initial_center_in_cartesian_after_2nd_rotation[0],
-    #                                                                                   initial_center_in_cartesian_after_2nd_rotation[1],
-    #                                                                                   initial_center_in_cartesian_after_2nd_rotation[2]))) }")
-    # print(f"Target center vector: {np.rad2deg(np.array(mapper.calculator
-    #                                     .convertCartesianToSpherical(target_center_in_cartesian_after_2nd_rotation[0],
-    #                                                                  target_center_in_cartesian_after_2nd_rotation[1],
-    #                                                                  target_center_in_cartesian_after_2nd_rotation[2])))}")
-    # print(f"Meridian vector: {np.rad2deg(np.array(mapper.calculator
-    #                                .convertCartesianToSpherical(meridian_vector_in_cartesian_after_2nd_rotation[0],
-    #                                                             meridian_vector_in_cartesian_after_2nd_rotation[1],
-    #                                                             meridian_vector_in_cartesian_after_2nd_rotation[2])))}")
-    # print("-------------------------------------------------------")
-    # print("Vectors after second rotation in cartesian coordinates: ")
-    # print(f"Central vector: {initial_center_in_cartesian_after_2nd_rotation}")
-    # print(f"Target center vector: {target_center_in_cartesian_after_2nd_rotation}")
-    # print(f"Meridian vector: {meridian_vector_in_cartesian_after_2nd_rotation}")
-    # combined_rotation = meridian_rotation @ central_rotation
-    # print("-------------------------------------------------------")
-    # print(f"Combined rotation: \n{combined_rotation}")
-    # initial_center_in_cartesian_after_combined_rotation = combined_rotation @ initial_center_in_cartesian
-    # target_center_in_cartesian_after_combined_rotation = combined_rotation @ target_center_in_cartesian
-    # meridian_vector_in_cartesian_after_combined_rotation = combined_rotation @ meridian_vector_in_cartesian
-    # print("-------------------------------------------------------")
-    # print("Vectors after combined rotation in spherical coordinates: ")
-    # print(f"Initial central vector: {np.rad2deg(np.array(mapper.calculator
-    #                                                      .convertCartesianToSpherical(initial_center_in_cartesian_after_combined_rotation[0],
-    #                                                                                   initial_center_in_cartesian_after_combined_rotation[1],
-    #                                                                                   initial_center_in_cartesian_after_combined_rotation[2]))) }")
-    # print(f"Target center vector: {np.rad2deg(np.array(mapper.calculator
-    #                                                    .convertCartesianToSpherical(target_center_in_cartesian_after_combined_rotation[0],
-    #                                                                                 target_center_in_cartesian_after_combined_rotation[1],
-    #                                                                                 target_center_in_cartesian_after_combined_rotation[2])))}")
-    # print(f"Meridian vector: {np.rad2deg(np.array(mapper.calculator
-    #                                               .convertCartesianToSpherical(meridian_vector_in_cartesian_after_combined_rotation[0],
-    #                                                                            meridian_vector_in_cartesian_after_combined_rotation[1],
-    #                                                                            meridian_vector_in_cartesian_after_combined_rotation[2])))}")
-    # print("-------------------------------------------------------")
-    # print("Vectors after combined rotation in cartesian coordinates: ")
-    # print(f"Central vector: {initial_center_in_cartesian_after_combined_rotation}")
-    # print(f"Target center vector: {target_center_in_cartesian_after_combined_rotation}")
-    # print(f"Meridian vector: {meridian_vector_in_cartesian_after_combined_rotation}")
 
 #---------------
 def cli() -> None:
@@ -182,8 +92,103 @@ def cli() -> None:
 
 #--------------
 if __name__ == "__main__":
+
     # start_time = time.time()
     # main()
     # print("--- %s seconds ---" % (round(time.time() - start_time, 2)))
     cli()
+    mapper = ib.getObjectInstance()
+    np.set_printoptions(precision=8, suppress=True, floatmode='fixed')
+    config = mapper.formatConfigDatastructures(mapper.getDefaultConfig())
+    initial_center = np.array([0, 0])
+    target_center = config["central_point"]
+    meridian_vector = config["meridian_point"]
+    print("-------------------------------------------------------")
+    print("Vectors in degrees:")
+    print(f"Central vector: {initial_center}")
+    print(f"Target center vector: {target_center}")
+    print(f"Meridian vector: {meridian_vector}")
+    initial_center_in_cartesian = mapper.calculator.convertSphericalToCartesian(np.deg2rad(np.array(initial_center[0])), np.deg2rad(np.array(initial_center[1])))
+    target_center_in_cartesian = mapper.calculator.convertSphericalToCartesian(np.deg2rad(np.array(target_center[0])), np.deg2rad(np.array(target_center[1])))
+    meridian_vector_in_cartesian = mapper.calculator.convertSphericalToCartesian(np.deg2rad(np.array(meridian_vector[0])), np.deg2rad(np.array(meridian_vector[1])))
+    print("-------------------------------------------------------")
+    print("Vectors in cartesian coordinates: ")
+    print(f"Central vector: {initial_center_in_cartesian}")
+    print(f"Target center vector: {target_center_in_cartesian}")
+    print(f"Meridian vector: {meridian_vector_in_cartesian}")
+    central_rotation = mapper.configurator.buildCenteringRotation(target_center)
+    meridian_rotation = mapper.configurator.buildMeridianRotation(meridian_vector, central_rotation)
+    print("-------------------------------------------------------")
+    print("Rotations: ")
+    print(f"Central rotation: \n{central_rotation}")
+    print(f"Meridian rotation: \n{meridian_rotation}")
+    initial_center_in_cartesian_after_1st_rotation = central_rotation @ initial_center_in_cartesian
+    target_center_in_cartesian_after_1st_rotation = central_rotation @ target_center_in_cartesian
+    meridian_vector_in_cartesian_after_1st_rotation = central_rotation @ meridian_vector_in_cartesian
+    print("-------------------------------------------------------")
+    print("Vectors after first rotation in spherical coordinates: ")
+    print(f"Initial central vector: {np.rad2deg(np.array(mapper.calculator
+        .convertCartesianToSpherical(initial_center_in_cartesian_after_1st_rotation[0],
+                                   initial_center_in_cartesian_after_1st_rotation[1],
+                                   initial_center_in_cartesian_after_1st_rotation[2])))}")
+    print(f"Target center vector: {np.rad2deg(np.array(mapper.calculator
+      .convertCartesianToSpherical(target_center_in_cartesian_after_1st_rotation[0],
+                                   target_center_in_cartesian_after_1st_rotation[1],
+                                   target_center_in_cartesian_after_1st_rotation[2])))}")
+    print(f"Meridian vector: {np.rad2deg(np.array(mapper.calculator
+      .convertCartesianToSpherical(meridian_vector_in_cartesian_after_1st_rotation[0],
+                                   meridian_vector_in_cartesian_after_1st_rotation[1],
+                                   meridian_vector_in_cartesian_after_1st_rotation[2])))}")
+    print("-------------------------------------------------------")
+    print("Vectors after first rotation in cartesian coordinates: ")
+    print(f"Central vector: {initial_center_in_cartesian_after_1st_rotation}")
+    print(f"Target center vector: {target_center_in_cartesian_after_1st_rotation}")
+    print(f"Meridian vector: {meridian_vector_in_cartesian_after_1st_rotation}")
+    initial_center_in_cartesian_after_2nd_rotation = meridian_rotation @ initial_center_in_cartesian_after_1st_rotation
+    target_center_in_cartesian_after_2nd_rotation = meridian_rotation @ target_center_in_cartesian_after_1st_rotation
+    meridian_vector_in_cartesian_after_2nd_rotation = meridian_rotation @ meridian_vector_in_cartesian_after_1st_rotation
+    print("-------------------------------------------------------")
+    print("Vectors after second rotation in spherical coordinates: ")
+    print(f"Initial central vector: {np.rad2deg(np.array(mapper.calculator
+                                                     .convertCartesianToSpherical(initial_center_in_cartesian_after_2nd_rotation[0],
+                                                                                  initial_center_in_cartesian_after_2nd_rotation[1],
+                                                                                  initial_center_in_cartesian_after_2nd_rotation[2]))) }")
+    print(f"Target center vector: {np.rad2deg(np.array(mapper.calculator
+                                    .convertCartesianToSpherical(target_center_in_cartesian_after_2nd_rotation[0],
+                                                                 target_center_in_cartesian_after_2nd_rotation[1],
+                                                                 target_center_in_cartesian_after_2nd_rotation[2])))}")
+    print(f"Meridian vector: {np.rad2deg(np.array(mapper.calculator
+                               .convertCartesianToSpherical(meridian_vector_in_cartesian_after_2nd_rotation[0],
+                                                            meridian_vector_in_cartesian_after_2nd_rotation[1],
+                                                            meridian_vector_in_cartesian_after_2nd_rotation[2])))}")
+    print("-------------------------------------------------------")
+    print("Vectors after second rotation in cartesian coordinates: ")
+    print(f"Central vector: {initial_center_in_cartesian_after_2nd_rotation}")
+    print(f"Target center vector: {target_center_in_cartesian_after_2nd_rotation}")
+    print(f"Meridian vector: {meridian_vector_in_cartesian_after_2nd_rotation}")
+    combined_rotation = meridian_rotation @ central_rotation
+    print("-------------------------------------------------------")
+    print(f"Combined rotation: \n{combined_rotation}")
+    initial_center_in_cartesian_after_combined_rotation = combined_rotation @ initial_center_in_cartesian
+    target_center_in_cartesian_after_combined_rotation = combined_rotation @ target_center_in_cartesian
+    meridian_vector_in_cartesian_after_combined_rotation = combined_rotation @ meridian_vector_in_cartesian
+    print("-------------------------------------------------------")
+    print("Vectors after combined rotation in spherical coordinates: ")
+    print(f"Initial central vector: {np.rad2deg(np.array(mapper.calculator
+                                                     .convertCartesianToSpherical(initial_center_in_cartesian_after_combined_rotation[0],
+                                                                                  initial_center_in_cartesian_after_combined_rotation[1],
+                                                                                  initial_center_in_cartesian_after_combined_rotation[2]))) }")
+    print(f"Target center vector: {np.rad2deg(np.array(mapper.calculator
+                                                   .convertCartesianToSpherical(target_center_in_cartesian_after_combined_rotation[0],
+                                                                                target_center_in_cartesian_after_combined_rotation[1],
+                                                                                target_center_in_cartesian_after_combined_rotation[2])))}")
+    print(f"Meridian vector: {np.rad2deg(np.array(mapper.calculator
+                                              .convertCartesianToSpherical(meridian_vector_in_cartesian_after_combined_rotation[0],
+                                                                           meridian_vector_in_cartesian_after_combined_rotation[1],
+                                                                           meridian_vector_in_cartesian_after_combined_rotation[2])))}")
+    print("-------------------------------------------------------")
+    print("Vectors after combined rotation in cartesian coordinates: ")
+    print(f"Central vector: {initial_center_in_cartesian_after_combined_rotation}")
+    print(f"Target center vector: {target_center_in_cartesian_after_combined_rotation}")
+    print(f"Meridian vector: {meridian_vector_in_cartesian_after_combined_rotation}")
     

@@ -7,7 +7,7 @@ class Calculator:
     def __init__(self):
         pass
 
-    def calculateMainMatrixFromData(self, data: np.ndarray, spherical_harmonics_values_matrix: np.ndarray, dpi: int):
+    def calculateMainMatrixFromData(self, data: np.ndarray, spherical_harmonics_values_matrix: np.ndarray, dpi: int) -> np.ndarray:
         """
         Function that calculates main heatmap matrix by vectorized multiplying coefficient with relative value from
         spherical harmonics value matrix.
@@ -36,7 +36,7 @@ class Calculator:
         # Matrix realignment
         return np.roll(np.fliplr(main_matrix), shift=dpi // 2, axis=1)
                             
-    def calculateSphericalHarmonicsDataForSetDPI(self, dpi, target_max_l):
+    def calculateSphericalHarmonicsDataForSetDPI(self, dpi: int, target_max_l: int) -> list:
         """
         Function
         :param dpi:
@@ -74,10 +74,14 @@ class Calculator:
         z = np.sin(lat)
         return x, y, z
 
-    def convertCartesianToSpherical(self, x: np.ndarray or float, y: np.ndarray or float, z: np.ndarray or float) \
-            -> tuple[np.ndarray, np.ndarray] or tuple[float, float]:
+    def convertCartesianToSpherical(self, x: float, y: float, z: float) -> tuple[float, float]:
         lat = np.arcsin(z)
         lon = np.arctan2(y, x)
+
+        if isinstance(y, float):
+            if abs(y) < 1e-10:
+                lon = 0.0
+
         return lon, lat
 
     def rotateGridByRotation(self,
@@ -116,5 +120,39 @@ class Calculator:
 
         return interpolated_data
 
-    def combineRotation(self, original_rotation: np.ndarray, input_rotation) -> np.ndarray:
+    def combineRotation(self, original_rotation: np.ndarray, input_rotation: np.ndarray) -> np.ndarray:
         return input_rotation @ original_rotation
+
+    def createCircle(self, circle_center_vector: np.ndarray, alpha: float) -> tuple[np.ndarray, np.ndarray]:
+        discrete_circle_linspace = np.linspace(0, 2 * np.pi, 360)
+
+        circle_center_vector_in_cartesian = np.array(
+            self.convertSphericalToCartesian(circle_center_vector[0], circle_center_vector[1])
+        )
+
+        alpha_in_rad = np.deg2rad(alpha)
+
+        basis_vector = np.array([0, 0, 1])
+        if np.allclose(circle_center_vector_in_cartesian, basis_vector):
+            rotating_vector = np.array([1, 0, 0])
+        else:
+            rotating_vector = np.cross(basis_vector, circle_center_vector_in_cartesian)
+            rotating_vector /= np.linalg.norm(rotating_vector)
+
+        main_vector = np.cross(circle_center_vector_in_cartesian, rotating_vector)
+
+        circle_values_in_cartesian = (
+                np.cos(alpha_in_rad) * circle_center_vector_in_cartesian[:, np.newaxis] +
+                np.sin(alpha_in_rad) * (
+                        np.cos(discrete_circle_linspace) * rotating_vector[:, np.newaxis] +
+                        np.sin(discrete_circle_linspace) * main_vector[:, np.newaxis]
+            )
+    )
+
+        circle_lon, circle_lat = self.convertCartesianToSpherical(
+            circle_values_in_cartesian[0], circle_values_in_cartesian[1], circle_values_in_cartesian[2]
+        )
+        circle_lon = (circle_lon + np.pi) % (2 * np.pi) - np.pi
+
+        return circle_lon, circle_lat
+

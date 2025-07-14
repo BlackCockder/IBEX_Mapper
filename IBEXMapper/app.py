@@ -154,13 +154,16 @@ class IBEXMapper:
             "central_point": np.ndarray,
             "meridian_point": np.ndarray,
         }
+
         formatted_config = {}
+
         for key, value in config.items():
             expected_type = config_types_schema.get(key, str)
             try:
                 formatted_config[key] = self.parseDataToCorrectType(value, expected_type)
             except Exception as e:
                 raise ValueError(f"Error parsing key '{key}' with value '{value}': {e}")
+
         return formatted_config
 
     def parseDataToCorrectType(self, value, expected_type):
