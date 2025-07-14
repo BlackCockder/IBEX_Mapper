@@ -32,7 +32,6 @@ class Projection:
         lat_r[idx] = np.nan
         return lon_r, lat_r
 
-    # wip
     def rotate_lonlat(self, lon_rad, lat_rad, R_mat):
         orig_shape = lon_rad.shape  # keep grid shape
 
@@ -117,22 +116,25 @@ class Projection:
 
         central_vector_point = self.calculator.convertSphericalToCartesian(np.deg2rad(central_coords[0]), np.deg2rad(central_coords[1]))
         meridian_vector_point = self.calculator.convertSphericalToCartesian(np.deg2rad(meridian_coords[0]), np.deg2rad(meridian_coords[1]))
-
-        FinalRotation = self.calculator.combineRotation(Rotation1, Rotation2)
+        FinalRotation = np.array([])
+        if central_coords[0] == meridian_coords[0] and central_coords[1] == meridian_coords[1]:
+            FinalRotation = Rotation1
+        else:
+            FinalRotation = self.calculator.combineRotation(Rotation1, Rotation2)
 
         rotated_central_vec = Rotation1 @ central_vector_point
         rotated_meridian_vec = FinalRotation @ meridian_vector_point
 
         central_lon, central_lat = self.calculator.convertCartesianToSpherical(
-            np.array([rotated_central_vec[0]]),
-            np.array([rotated_central_vec[1]]),
-            np.array([rotated_central_vec[2]])
+            rotated_central_vec[0],
+            rotated_central_vec[1],
+            rotated_central_vec[2]
         )
 
         meridian_lon, meridian_lat = self.calculator.convertCartesianToSpherical(
-            np.array([rotated_meridian_vec[0]]),
-            np.array([rotated_meridian_vec[1]]),
-            np.array([rotated_meridian_vec[2]])
+            rotated_meridian_vec[0],
+            rotated_meridian_vec[1],
+            rotated_meridian_vec[2],
         )
 
         parsed_points = self.load_points(self.FEATURES_FILE)
@@ -159,11 +161,38 @@ class Projection:
                 ax.plot(-spherical[0], spherical[1], 'o', markersize=5, color=color, zorder=6)
                 ax.text(-spherical[0], spherical[1], f' {name}', fontsize=7, color=color, zorder=6)
 
+        circle_center_vector = np.array([np.deg2rad(120), np.deg2rad(30)])
+        alpha = 30
+        lon_circ, lat_circ = self.calculator.createCircle(circle_center_vector, alpha)
+
+        lon_circ_rot, lat_circ_rot = self.rotate_lonlat(lon_circ, lat_circ, FinalRotation)
+
+        lon_circ_rot, lat_circ_rot = self._split_at_wrap(lon_circ_rot, lat_circ_rot)
+
+        rotated_circle_center_vector_lon, rotated_circle_center_vector_lat = self.rotate_lonlat(circle_center_vector[0], circle_center_vector[1], FinalRotation)
+
+        ax.plot(-rotated_circle_center_vector_lon, rotated_circle_center_vector_lat, 'o', markersize=5, color="cyan", zorder=5)
+        ax.plot(-lon_circ_rot, lat_circ_rot, color='cyan', linewidth=1.5, zorder=5)
+
         # wip
         if rotate:
             self.draw_graticule(ax, FinalRotation)
         else:
             self.draw_graticule(ax, np.eye(3))
+
+        # watermark
+        logo = mpimg.imread("public\logo_ibex.png")
+        zoom = 0.3
+        imagebox = OffsetImage(logo, zoom=zoom)
+        ab = AnnotationBbox(
+            imagebox,
+            xy=(0.97, 0.04),
+            xycoords="figure fraction",
+            frameon=False,
+            box_alignment=(1, 0)
+        )
+        ab.set_zorder(10)  # draw on top of everything else
+        ax.add_artist(ab)
 
         at = AnchoredText(
             "2025 IBEX Mapper",  # text to display
@@ -177,21 +206,50 @@ class Projection:
         at.patch.set_edgecolor("none")  # remove border if not needed
         ax.add_artist(at)
         plt.tight_layout()
-
-        print("Rotated central point (deg):", np.rad2deg(central_lon[0]), np.rad2deg(central_lat[0]))
-        print("Rotated meridian point (deg):", np.rad2deg(meridian_lon[0]), np.rad2deg(meridian_lat[0]))
+        print("Rotated central point (deg):", np.rad2deg(central_lon), np.rad2deg(central_lat))
+        print("Rotated meridian point (deg):", np.rad2deg(meridian_lon), np.rad2deg(meridian_lat))
 
         ax.set_xticks([])
         ax.set_yticks([])
+        ax.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False)
         ax.grid(False)
 
-        pcm = ax.pcolormesh(lon, lat, z, cmap="magma", shading="auto", rasterized=True) # cmap: "viridis", "magma"
+        pcm = ax.pcolormesh(lon, lat, z, cmap="magma", shading="auto", rasterized=True) # cmap: "viridis"
         cbar = fig.colorbar(pcm, ax=ax, orientation="horizontal", pad=0.05)
         cbar.set_label(safe_label)
 
-        ax.plot(central_lon[0], central_lat[0], 'ro', markersize=6, label="Central Point")
-        ax.plot(meridian_lon[0], meridian_lat[0], 'bo', markersize=6, label="Meridian Point")
+        ax.plot(-central_lon, central_lat, 'ro', markersize=6, label="Central Point")
+        ax.plot(-meridian_lon, meridian_lat, 'bo', markersize=6, label="Meridian Point")
         ax.legend(loc='lower left')
+        equator_degrees = np.arange(-180, 180, 30)
+        for lon_deg in equator_degrees:
+            if lon_deg == 0:
+                label = "0"
+            else:
+                label = f"{int(lon_deg)}°"
+            lon_rad = np.deg2rad(lon_deg)
+            lat_rad = 0.0
+            if rotate:
+                x, y = self.rotate_lonlat(np.array([lon_rad]), np.array([lat_rad]), FinalRotation)
+            else:
+                x, y = np.array([lon_rad]), np.array([lat_rad])
+            ax.text(-x[0], y[0], label, fontsize=6, ha='center', va='bottom', color='white', zorder=7)
+
+        # Add labeled degree points along Meridian (lon = 0°)
+        meridian_degrees = np.arange(-90, 91, 30)  # 6 points every 30°
+        for lat_deg in meridian_degrees:
+            if lat_deg == 0:
+                continue  # Already labeled at equator
+            label = f"{int(lat_deg)}°"
+            lat_rad = np.deg2rad(lat_deg)
+            lon_rad = 0.0  # Meridian
+
+            if rotate:
+                x, y = self.rotate_lonlat(np.array([lon_rad]), np.array([lat_rad]), FinalRotation)
+            else:
+                x, y = np.array([lon_rad]), np.array([lat_rad])
+            ax.text(-x[0], y[0], label, fontsize=6, ha='left', va='center', color='white', zorder=7)
+
         plt.tight_layout()
         plt.savefig(os.path.join(self.OUTPUT_DIR, f"file_{filename}__res{n}.pdf"), format='pdf', dpi=n)
         plt.show()

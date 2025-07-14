@@ -12,7 +12,6 @@ _handler = Handler(_calculator)
 _mapper = _IBEXMapperClass(_projection, _calculator, _configurator, _handler)
 
 
-
 def getObjectInstance() -> _IBEXMapperClass:
     return _mapper
 
