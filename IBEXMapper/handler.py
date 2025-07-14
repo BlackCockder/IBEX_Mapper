@@ -4,6 +4,9 @@ from .calculator import Calculator
 
 
 class Handler:
+    """
+    This class is responsible for using logic from calculator to build the final heatmap matrix.
+    """
     def __init__(self, calculator: Calculator):
         self.calculator = calculator
 
@@ -15,8 +18,8 @@ class Handler:
         Resolution of the map. Ranges from 0 to infinity but generally speaking the intended accuracy is around 720.
 
         :param target_max_l:
-        Caching parameter. Ranges from 0 to infinity. Determines how deep will calculator calculate the spherical
-        harmonics for. Intended value is one that user sets as default in the config.
+        Caching parameter (related to spherical harmonics). Ranges from 0 to infinity. Determines how deep will
+        calculator calculate the spherical harmonics for. Intended value is one that user sets as default in the config.
 
         :param data:
         Matrix of (N, 4) size. Generally used for accessing 3rd column where the coefficients are located and for
@@ -44,7 +47,7 @@ class Handler:
 
             self.cacheSphericalHarmonics(file_path, spherical_harmonics_matrices)
 
-            # Same assumption here as in line 39.
+            # Same assumption here as in line 40.
             cut_spherical_harmonics = spherical_harmonics_matrices[:data.shape[0]]
 
             return self.calculator.calculateMainMatrixFromData(data, cut_spherical_harmonics, dpi)
@@ -53,6 +56,7 @@ class Handler:
         return file_path.exists()
 
     def cacheSphericalHarmonics(self, file_path, spherical_harmonics_matrices) -> None:
+        # Saves as .npy file.
         np.save(file_path, spherical_harmonics_matrices, allow_pickle=True)
 
     def loadSphericalHarmonicsFromCache(self, file_path: Path) -> np.ndarray:
