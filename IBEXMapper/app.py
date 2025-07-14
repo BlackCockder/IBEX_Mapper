@@ -48,7 +48,7 @@ class IBEXMapper:
                 main_rotation = central_rotation.T
             else:
                 meridian_rotation = self.configurator.buildMeridianRotation(config["meridian_point"], central_rotation)
-                main_rotation = self.calculator.combineRotation(central_rotation, meridian_rotation).T
+                main_rotation = (meridian_rotation @ central_rotation).T
             x_rot, y_rot, z_rot = self.calculator.rotateGridByRotation(x, y, z, main_rotation)
             lon, lat = self.calculator.convertCartesianToSpherical(x_rot, y_rot, z_rot)
             heatmap_data = self.calculator.interpolateDataForNewGrid(heatmap_data, lat, lon)
