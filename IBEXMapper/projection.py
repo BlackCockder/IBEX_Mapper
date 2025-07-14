@@ -120,7 +120,7 @@ class Projection:
         if central_coords[0] == meridian_coords[0] and central_coords[1] == meridian_coords[1]:
             FinalRotation = Rotation1
         else:
-            FinalRotation = self.calculator.combineRotation(Rotation1, Rotation2)
+            FinalRotation = Rotation2 @ Rotation1
 
         rotated_central_vec = Rotation1 @ central_vector_point
         rotated_meridian_vec = FinalRotation @ meridian_vector_point
