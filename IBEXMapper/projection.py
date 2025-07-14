@@ -164,19 +164,6 @@ class Projection:
             self.draw_graticule(ax, FinalRotation)
         else:
             self.draw_graticule(ax, np.eye(3))
-        # watermark
-        logo = mpimg.imread("public\logo_ibex.png")
-        zoom = 0.3
-        imagebox = OffsetImage(logo, zoom=zoom)
-        ab = AnnotationBbox(
-            imagebox,
-            xy=(0.97, 0.04),  # (x, y) in figure-fraction coords (0-1)
-            xycoords="figure fraction",
-            frameon=False,  # no extra frame; set True if you want one
-            box_alignment=(1, 0)  # (1,0) = right-bottom corner of the box
-        )
-        ab.set_zorder(10)  # draw on top of everything else
-        ax.add_artist(ab)
 
         at = AnchoredText(
             "2025 IBEX Mapper",  # text to display

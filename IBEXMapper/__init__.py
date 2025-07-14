@@ -12,6 +12,11 @@ _handler = Handler(_calculator)
 _mapper = _IBEXMapperClass(_projection, _calculator, _configurator, _handler)
 
 
+
+def getObjectInstance() -> _IBEXMapperClass:
+    return _mapper
+
+
 def generateMapFromLink(link: str, config=None) -> None:
     return _mapper.generateMapFromLink(link, config)
 
@@ -26,10 +31,6 @@ def resetConfigToDefaultConfig() -> None:
 
 def createNewConfig(config: dict) -> dict:
     return _mapper.generateConfigFromPartialInfo(config)
-
-
-def getObjectInstance() -> _IBEXMapperClass:
-    return _mapper
 
 
 def addPoint(point_name: str, point: tuple[float, float], color: str) -> None:
