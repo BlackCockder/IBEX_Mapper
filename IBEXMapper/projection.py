@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
+from matplotlib.colors import LinearSegmentedColormap
 from .configurator import Configurator
 from .calculator import Calculator
 from matplotlib.offsetbox import AnchoredText, OffsetImage, AnnotationBbox
@@ -62,16 +63,33 @@ class Projection:
             lon_line = np.linspace(-np.pi, np.pi, n_seg)
             lat_line = np.full_like(lon_line, lat0)
             lon_r, lat_r = self.rotate_lonlat(lon_line, lat_line, R_mat)
-            lon_r, lat_r = self._split_at_wrap(lon_r, lat_r)   # ← NEW
-            ax.plot(-lon_r, lat_r, lw=.4, color='gray')
+            lon_r, lat_r = self._split_at_wrap(lon_r, lat_r)
+            ax.plot(-lon_r, lat_r, lw=.4, color='grey')
 
         # meridians
         for lon0 in np.deg2rad(np.arange(-180, 181, lon_step)):
             lat_line = np.linspace(-np.pi/2, np.pi/2, n_seg)
             lon_line = np.full_like(lat_line, lon0)
             lon_r, lat_r = self.rotate_lonlat(lon_line, lat_line, R_mat)
-            lon_r, lat_r = self._split_at_wrap(lon_r, lat_r)   # ← NEW
-            ax.plot(-lon_r, lat_r, lw=.4, color='gray')
+            lon_r, lat_r = self._split_at_wrap(lon_r, lat_r)
+            ax.plot(-lon_r, lat_r, lw=.4, color='grey')
+
+    def loadColorMap(self, cmap_type: str):
+        cmaps = {"batlow": r"public\batlow.txt",
+                 "batlowK": r"public\batlowK.txt",
+                 "batlowW": r"public\batlowW.txt",
+                 "viridis": "viridis",
+                 "magma": "magma"
+                 }
+
+        if cmap_type in ["viridis", "magma"]:
+            return cmap_type
+        elif cmap_type in cmaps:
+            cm_data = np.loadtxt(cmaps[cmap_type])
+            colormap = LinearSegmentedColormap.from_list('batlow', cm_data)
+            return colormap
+        else:
+            raise ValueError(f"Invalid colormap type: {cmap_type}")
 
     def projection(self, z: np.ndarray,
                    n: int, filename: str,
@@ -188,7 +206,6 @@ class Projection:
         at.patch.set_edgecolor("none")  # remove border if not needed
         ax.add_artist(at)
         plt.tight_layout()
-
         print("Rotated central point (deg):", np.rad2deg(central_lon), np.rad2deg(central_lat))
         print("Rotated meridian point (deg):", np.rad2deg(meridian_lon), np.rad2deg(meridian_lat))
 

@@ -53,7 +53,8 @@ class IBEXMapper:
             lon, lat = self.calculator.convertCartesianToSpherical(x_rot, y_rot, z_rot)
             heatmap_data = self.calculator.interpolateDataForNewGrid(heatmap_data, lat, lon)
 
-        heatmap_data[heatmap_data < 0] = 0
+        if not config["allow_negative_values"]:
+            heatmap_data[heatmap_data < 0] = 0
         return self.projection.projection(heatmap_data, config["map_accuracy"], file_path, config["rotate"],
                                           config["central_point"], config["meridian_point"])
 
@@ -110,7 +111,8 @@ class IBEXMapper:
             "max_l_to_cache": "30",
             "rotate": "False",
             "central_point": "(0, 0)",  # (lon, lat)
-            "meridian_point": "(0, 0)"
+            "meridian_point": "(0, 0)",
+            "allow_negative_values": "True",
         }
         with open(self.CONFIG_FILE, "w") as config:
             json.dump(default_config, config, indent=4)
@@ -153,6 +155,7 @@ class IBEXMapper:
             "rotate": bool,
             "central_point": np.ndarray,
             "meridian_point": np.ndarray,
+            "allow_negative_values": bool,
         }
 
         formatted_config = {}
@@ -201,6 +204,13 @@ class IBEXMapper:
                     raise ValueError("Rotate must be a boolean or a string 'True'/'False'.")
             elif not isinstance(rotate, bool):
                 raise ValueError("Rotate must be a boolean.")
+        if "allow_negative_values" in config:
+            allow_negative_values = config["allow_negative_values"]
+            if isinstance(allow_negative_values, str):
+                if allow_negative_values.lower() not in ("true", "false"):
+                    raise ValueError("Allow negative values must be a boolean or a string 'True'/'False'.")
+            elif not isinstance(allow_negative_values, bool):
+                raise ValueError("Allow negative values must be a boolean.")
 
         def validate_geo_point(name, val):
             try:
