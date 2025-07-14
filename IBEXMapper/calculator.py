@@ -7,7 +7,7 @@ class Calculator:
     def __init__(self):
         pass
 
-    def calculateMainMatrixFromData(self, data: np.ndarray, spherical_harmonics_values_matrix: np.ndarray, dpi: int):
+    def calculateMainMatrixFromData(self, data: np.ndarray, spherical_harmonics_values_matrix: np.ndarray, dpi: int) -> np.ndarray:
         """
         Function that calculates main heatmap matrix by vectorized multiplying coefficient with relative value from
         spherical harmonics value matrix.
@@ -36,7 +36,7 @@ class Calculator:
         # Matrix realignment
         return np.roll(np.fliplr(main_matrix), shift=dpi // 2, axis=1)
                             
-    def calculateSphericalHarmonicsDataForSetDPI(self, dpi, target_max_l):
+    def calculateSphericalHarmonicsDataForSetDPI(self, dpi: int, target_max_l: int) -> list:
         """
         Function
         :param dpi:
@@ -120,5 +120,5 @@ class Calculator:
 
         return interpolated_data
 
-    def combineRotation(self, original_rotation: np.ndarray, input_rotation) -> np.ndarray:
+    def combineRotation(self, original_rotation: np.ndarray, input_rotation: np.ndarray) -> np.ndarray:
         return input_rotation @ original_rotation
