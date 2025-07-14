@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
+from matplotlib.colors import LinearSegmentedColormap
 from .configurator import Configurator
 from .calculator import Calculator
 from matplotlib.offsetbox import AnchoredText, OffsetImage, AnnotationBbox
@@ -36,7 +37,7 @@ class Projection:
         orig_shape = lon_rad.shape  # keep grid shape
 
         # lon/lat -> cartesian
-        x, y, z = temp_calculator.convertSphericalToCartesian(
+        x, y, z = self.calculator.convertSphericalToCartesian(
             lon_rad.ravel(),
             lat_rad.ravel()
         )
@@ -46,7 +47,7 @@ class Projection:
         xyz_rot = R_mat @ xyz # (3, N)
 
         # cartesian -> lon/lat
-        lon_rot, lat_rot = temp_calculator.convertCartesianToSpherical(
+        lon_rot, lat_rot = self.calculator.convertCartesianToSpherical(
             xyz_rot[0], xyz_rot[1], xyz_rot[2]
         )
 
@@ -63,16 +64,33 @@ class Projection:
             lon_line = np.linspace(-np.pi, np.pi, n_seg)
             lat_line = np.full_like(lon_line, lat0)
             lon_r, lat_r = self.rotate_lonlat(lon_line, lat_line, R_mat)
-            lon_r, lat_r = self._split_at_wrap(lon_r, lat_r)   # ← NEW
-            ax.plot(-lon_r, lat_r, lw=.4, color='#E6DAA6')
+            lon_r, lat_r = self._split_at_wrap(lon_r, lat_r)
+            ax.plot(-lon_r, lat_r, lw=.4, color='grey')
 
         # meridians
         for lon0 in np.deg2rad(np.arange(-180, 181, lon_step)):
             lat_line = np.linspace(-np.pi/2, np.pi/2, n_seg)
             lon_line = np.full_like(lat_line, lon0)
             lon_r, lat_r = self.rotate_lonlat(lon_line, lat_line, R_mat)
-            lon_r, lat_r = self._split_at_wrap(lon_r, lat_r)   # ← NEW
-            ax.plot(-lon_r, lat_r, lw=.4, color='#E6DAA6')
+            lon_r, lat_r = self._split_at_wrap(lon_r, lat_r)
+            ax.plot(-lon_r, lat_r, lw=.4, color='grey')
+
+    def loadColorMap(self, cmap_type: str):
+        cmaps = {"batlow": r"public\batlow.txt",
+                 "batlowK": r"public\batlowK.txt",
+                 "batlowW": r"public\batlowW.txt",
+                 "viridis": "viridis",
+                 "magma": "magma"
+                 }
+
+        if cmap_type in ["viridis", "magma"]:
+            return cmap_type
+        elif cmap_type in cmaps:
+            cm_data = np.loadtxt(cmaps[cmap_type])
+            colormap = LinearSegmentedColormap.from_list('batlow', cm_data)
+            return colormap
+        else:
+            raise ValueError(f"Invalid colormap type: {cmap_type}")
 
     def projection(self, z: np.ndarray,
                    n: int, filename: str,
@@ -133,17 +151,19 @@ class Projection:
                     np.array([rotated_cartesian[1]]),
                     np.array([rotated_cartesian[2]])
                 )
-                ax.plot(-lon_spherical[0], lat_spherical[0], 'o', markersize=5, color=color)
-                ax.text(-lon_spherical[0], lat_spherical[0], f' {name}', fontsize=7, color=color)
+                ax.plot(-lon_spherical[0], lat_spherical[0], 'o', markersize=5, color=color, zorder=6)
+                ax.text(-lon_spherical[0], lat_spherical[0], f' {name}', fontsize=7, color=color, zorder=6)
             else:
                 spherical[0] = np.deg2rad(spherical[0])
                 spherical[1] = np.deg2rad(spherical[1])
-                ax.plot(-spherical[0], spherical[1], 'o', markersize=5, color=color)
-                ax.text(-spherical[0], spherical[1], f' {name}', fontsize=7, color=color)
+                ax.plot(-spherical[0], spherical[1], 'o', markersize=5, color=color, zorder=6)
+                ax.text(-spherical[0], spherical[1], f' {name}', fontsize=7, color=color, zorder=6)
 
         # wip
-        self.draw_graticule(ax, FinalRotation)
-
+        if rotate:
+            self.draw_graticule(ax, FinalRotation)
+        else:
+            self.draw_graticule(ax, np.eye(3))
         # watermark
         logo = mpimg.imread("public\logo_ibex.png")
         zoom = 0.3
@@ -171,20 +191,14 @@ class Projection:
         ax.add_artist(at)
         plt.tight_layout()
 
-        print("Rotated central point (deg):", np.rad2deg(central_lon[0, 0]), np.rad2deg(central_lat[0, 0]))
-        print("Rotated meridian point (deg):", np.rad2deg(meridian_lon[0, 0]), np.rad2deg(meridian_lat[0, 0]))
+        print("Rotated central point (deg):", np.rad2deg(central_lon[0]), np.rad2deg(central_lat[0]))
+        print("Rotated meridian point (deg):", np.rad2deg(meridian_lon[0]), np.rad2deg(meridian_lat[0]))
 
-        # ticks
-        ticks_deg = np.arange(-150, 180, 30)  # default range
-        ticks_rad = np.deg2rad(ticks_deg)
-        labels = [f"{abs(t)}°" if t != 0 else "0°" for t in ticks_deg[::-1]]
-        signs = ['' if t == 0 else ('-' if t < 0 else '') for t in ticks_deg[::-1]]
-        custom_labels = [f"{s}{l}" for s, l in zip(signs, labels)]
-        ax.set_xticks(ticks_rad)
-        ax.set_xticklabels(custom_labels)
+        ax.set_xticks([])
+        ax.set_yticks([])
         ax.grid(False)
 
-        pcm = ax.pcolormesh(lon, lat, z, cmap="magma", shading="auto") # cmap: "viridis"
+        pcm = ax.pcolormesh(lon, lat, z, cmap="magma", shading="auto", rasterized=True) # cmap: "viridis", "magma"
         cbar = fig.colorbar(pcm, ax=ax, orientation="horizontal", pad=0.05)
         cbar.set_label(safe_label)
 
