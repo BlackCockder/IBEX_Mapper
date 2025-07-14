@@ -41,8 +41,8 @@ def run(link: str, show_spinner: bool) -> None:
     mapper = ib.getObjectInstance()
     mapper.setDefaultConfig(mapper.generateConfigFromPartialInfo({
         "map_accuracy": 400,
-        "central_point": (-75, 0),
-        "meridian_point": (90, -40)
+        "central_point": (-75, 10),
+        "meridian_point": (-65, 30)
     }))
     mapper.addPoint("Testing point 1", (100, 30), "blue")
     mapper.addPoint("Testing point 2", (-100, 30), "red")

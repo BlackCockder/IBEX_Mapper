@@ -31,7 +31,6 @@ class Projection:
         lat_r[idx] = np.nan
         return lon_r, lat_r
 
-    # wip
     def rotate_lonlat(self, lon_rad, lat_rad, R_mat):
         orig_shape = lon_rad.shape  # keep grid shape
 
@@ -144,6 +143,19 @@ class Projection:
                 ax.plot(-spherical[0], spherical[1], 'o', markersize=5, color=color, zorder=6)
                 ax.text(-spherical[0], spherical[1], f' {name}', fontsize=7, color=color, zorder=6)
 
+        circle_center_vector = np.array([np.deg2rad(120), np.deg2rad(30)])
+        alpha = 30
+        lon_circ, lat_circ = self.calculator.createCircle(circle_center_vector, alpha)
+
+        lon_circ_rot, lat_circ_rot = self.rotate_lonlat(lon_circ, lat_circ, FinalRotation)
+
+        lon_circ_rot, lat_circ_rot = self._split_at_wrap(lon_circ_rot, lat_circ_rot)
+
+        rotated_circle_center_vector_lon, rotated_circle_center_vector_lat = self.rotate_lonlat(circle_center_vector[0], circle_center_vector[1], FinalRotation)
+
+        ax.plot(-rotated_circle_center_vector_lon, rotated_circle_center_vector_lat, 'o', markersize=5, color="cyan", zorder=5)
+        ax.plot(-lon_circ_rot, lat_circ_rot, color='cyan', linewidth=1.5, zorder=5)
+
         # wip
         if rotate:
             self.draw_graticule(ax, FinalRotation)
@@ -156,10 +168,10 @@ class Projection:
         imagebox = OffsetImage(logo, zoom=zoom)
         ab = AnnotationBbox(
             imagebox,
-            xy=(0.97, 0.04),  # (x, y) in figure-fraction coords (0-1)
+            xy=(0.97, 0.04),
             xycoords="figure fraction",
-            frameon=False,  # no extra frame; set True if you want one
-            box_alignment=(1, 0)  # (1,0) = right-bottom corner of the box
+            frameon=False,
+            box_alignment=(1, 0)
         )
         ab.set_zorder(10)  # draw on top of everything else
         ax.add_artist(ab)
