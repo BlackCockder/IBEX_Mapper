@@ -74,10 +74,14 @@ class Calculator:
         z = np.sin(lat)
         return x, y, z
 
-    def convertCartesianToSpherical(self, x: np.ndarray or float, y: np.ndarray or float, z: np.ndarray or float) \
-            -> tuple[np.ndarray, np.ndarray] or tuple[float, float]:
+    def convertCartesianToSpherical(self, x: float, y: float, z: float) -> tuple[float, float]:
         lat = np.arcsin(z)
         lon = np.arctan2(y, x)
+
+        if isinstance(y, float):
+            if abs(y) < 1e-10:
+                lon = 0.0
+
         return lon, lat
 
     def rotateGridByRotation(self,
