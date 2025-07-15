@@ -19,14 +19,13 @@ class Projection:
         self.calculator = calculator
         self.configurator = configurator
 
-    #wip
     def _split_at_wrap(self, lon_r, lat_r, thresh=np.pi):
         """Return copies of *lon_r*, *lat_r* with NaNs inserted wherever the curve
         crosses the ±π seam, so Matplotlib starts a new segment there."""
         jump = np.abs(np.diff(lon_r)) > thresh
         if not jump.any():
             return lon_r, lat_r
-        idx = np.where(jump)[0] + 1        # segment starts *after* the jump
+        idx = np.where(jump)[0] + 1
         lon_r, lat_r = lon_r.astype(float), lat_r.astype(float)
         lon_r[idx] = np.nan
         lat_r[idx] = np.nan
@@ -42,7 +41,7 @@ class Projection:
         )
         xyz = np.vstack([x, y, z]) # (3, N)
 
-        # rotate every point
+        # rotates every point
         xyz_rot = R_mat @ xyz # (3, N)
 
         # cartesian -> lon/lat
@@ -174,32 +173,17 @@ class Projection:
         ax.plot(-rotated_circle_center_vector_lon, rotated_circle_center_vector_lat, 'o', markersize=5, color="cyan", zorder=5)
         ax.plot(-lon_circ_rot, lat_circ_rot, color='cyan', linewidth=1.5, zorder=5)
 
-        # wip
         if rotate:
             self.draw_graticule(ax, FinalRotation)
         else:
             self.draw_graticule(ax, np.eye(3))
 
-        # watermark
-        logo = mpimg.imread("public\logo_ibex.png")
-        zoom = 0.3
-        imagebox = OffsetImage(logo, zoom=zoom)
-        ab = AnnotationBbox(
-            imagebox,
-            xy=(0.97, 0.04),
-            xycoords="figure fraction",
-            frameon=False,
-            box_alignment=(1, 0)
-        )
-        ab.set_zorder(10)  # draw on top of everything else
-        ax.add_artist(ab)
-
         at = AnchoredText(
-            "2025 IBEX Mapper",  # text to display
-            loc="lower right",  # 'upper left' | 'upper right' | …
-            prop=dict(size=8),  # text style
-            frameon=True,  # draws a bbox
-            pad=0.3,  # tighten / loosen padding
+            "2025 IBEX Mapper",
+            loc="lower right",
+            prop=dict(size=8),
+            frameon=True,
+            pad=0.3,
             borderpad=0.4
         )
         at.patch.set_facecolor("white")  # make sure the box stays white

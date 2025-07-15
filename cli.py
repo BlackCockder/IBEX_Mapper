@@ -1,361 +1,259 @@
 from __future__ import annotations
+import ast
 import itertools
-import shlex
+import json
 import sys
 import threading
 import time
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
-import json
-import os
-import ast
-import numpy as np
 import typer
 from rich.console import Console
 from rich.table import Table
-from rich import print as rprint
+import IBEXMapper as ibex
 
-# ────────────────────────────────────────────────────────────────────────────────
-#  Import your real library here
-#  (the MockMapper below is only for standalone demonstration)
-# ────────────────────────────────────────────────────────────────────────────────
-try:
-    import IBEXMapper as ibex                       # production path
-except ModuleNotFoundError:                         # dev / test fallback
-    from mock_mapper import MockMapper as ibex      # noqa: F401,E402
-
-# ────────────────────────────────────────────────────────────────────────────────
 INTRO_MESSAGE = r"""
  ___ ____  _______  __    __  __    _    ____  ____  _____ ____  
 |_ _| __ )| ____\ \/ /   |  \/  |  / \  |  _ \|  _ \| ____|  _ \ 
  | ||  _ \|  _|  \  /    | |\/| | / _ \ | |_) | |_) |  _| | |_) |
  | || |_) | |___ /  \    | |  | |/ ___ \|  __/|  __/| |___|  _ < 
 |___|____/|_____/_/\_\___|_|  |_/_/   \_\_|   |_|   |_____|_| \_\ 
-                 Space Research Centre · Polish Academy of Sciences
+Space Research Centre · Polish Academy of Sciences
 """
 
-APP_DIR = Path(__file__).parent
-CONFIG_DIR = APP_DIR / "config"
-POINTS_FILE = APP_DIR / "map_features" / "map_features.json"
-CONFIG_FILE = CONFIG_DIR / "config.json"
-
 console = Console()
-app = typer.Typer(no_args_is_help=False, help="IBEX Mapper CLI – generate and manage IBEX maps.")
+app = typer.Typer(add_completion=False, help="IBEXMapper CLI")
 
+mapper = ibex.getObjectInstance()
+CONFIG_FILE = Path(mapper.CONFIG_FILE)
+FEATURES_FILE = Path(mapper.FEATURES_FILE)
 
-# ────────────────────────────────────────────────────────────────────────────────
-# Helpers
-# ────────────────────────────────────────────────────────────────────────────────
-def _spinner(label: str, stop_event: threading.Event, delay: float = .1) -> None:
+def _spinner(msg: str, done: threading.Event, interval: float = 0.1) -> None:
     for ch in itertools.cycle("|/-\\"):
-        if stop_event.is_set():
+        if done.is_set():
             break
-        sys.stdout.write(f"\r{label} {ch}")
+        sys.stdout.write(f"\r{msg} {ch}")
         sys.stdout.flush()
-        time.sleep(delay)
-    sys.stdout.write("\r" + " " * (len(label) + 2) + "\r")
+        time.sleep(interval)
+    sys.stdout.write("\r" + " " * (len(msg) + 2) + "\r")
     sys.stdout.flush()
 
 
-def _run_map_generation(link: str, show_spinner: bool, cfg: Optional[Dict[str, Any]] = None) -> None:
-    stop = threading.Event()
-    if show_spinner:
-        threading.Thread(target=_spinner, args=("GENERATING MAP", stop), daemon=True).start()
-    mapper = ibex.getObjectInstance()
-    cfg = mapper.formatConfigDatastructures(cfg) if cfg else None
-    mapper.generateMapFromLink(link, cfg)
-
-    if show_spinner:
-        stop.set()
-    rprint("[green]MAP GENERATED[/green]")
+def _parse_point(txt: str) -> Tuple[float, float]:
+    try:
+        if "," in txt and not txt.strip().startswith("("):
+            txt = f"({txt})"
+        lon, lat = ast.literal_eval(txt)
+        lon_f, lat_f = float(lon), float(lat)
+        return lon_f, lat_f
+    except Exception as exc:
+        raise typer.BadParameter("Expected '(lon, lat)'.") from exc
 
 
-def _load_cfg() -> Dict[str, Any]:
+def _current_cfg() -> Dict[str, Any]:
     if not CONFIG_FILE.exists():
-        ibex.getObjectInstance().resetConfig()
+        mapper.resetConfig()
     return json.loads(CONFIG_FILE.read_text())
 
 
+def _typed_cfg(raw: Dict[str, Any]) -> Dict[str, Any]:
+    """Convert *raw* JSON values from disk to properly typed config dict."""
+    mapper = ibex.getObjectInstance()
+    return mapper.formatConfigDatastructures(raw)
+
+    # return ibex.createNewConfig(raw)
+
+
 def _save_cfg(cfg: Dict[str, Any]) -> None:
-    CONFIG_DIR.mkdir(exist_ok=True)
-    CONFIG_FILE.write_text(json.dumps(cfg, indent=4, default=str))
+    ibex.setDefaultConfig(cfg)
 
-
-def _parse_point(val: str) -> Tuple[float, float]:
-    try:
-        pt = ast.literal_eval(val)
-        if (
-            isinstance(pt, tuple)
-            and len(pt) == 2
-            and all(isinstance(n, (int, float)) for n in pt)
-        ):
-            return pt  # type: ignore[return-value]
-        raise ValueError
-    except Exception:
-        raise typer.BadParameter("Expected format: '(lon, lat)', e.g. '(100, -30)'.")
-
-
-# ────────────────────────────────────────────────────────────────────────────────
-# CLI commands
-# ────────────────────────────────────────────────────────────────────────────────
-@app.command()
-def generate(
-    file_path: Path = typer.Option(
-        ..., "--file", "-f", prompt="Path to the IBEX data file",
-        help="Text file with IBEX spherical-harmonics coefficients",
-        exists=True, readable=True, dir_okay=False
-    ),
-    quiet: bool = typer.Option(False, "--quiet", "-q", help="Suppress banner and timing info."),
-    spinner: bool = typer.Option(True, "--spinner/--no-spinner", help="Show animated progress bar."),
-    use_config: bool = typer.Option(False, "--use-config", "-c", help="Use saved configuration file."),
+@app.command("generate", help="Generate map from data file (spinner always on).")
+def cmd_generate(
+    link: Path = typer.Argument(..., exists=True, readable=True),
+    use_saved_config: bool = typer.Option(True, "--config/--no-config"),
 ):
-    """Generate a map from an IBEX data file."""
-    if not quiet:
-        console.print(INTRO_MESSAGE)
-    t0 = time.time()
-    cfg = _load_cfg() if use_config else None
-    _run_map_generation(str(file_path), show_spinner=spinner and not quiet, cfg=cfg)
-    if not quiet:
-        console.print(f"[bold green]Completed in {time.time() - t0:.2f} s[/bold green]")
+    cfg: Optional[Dict[str, Any]] = _typed_cfg(_current_cfg()) if use_saved_config else None
+    done = threading.Event()
+    t = threading.Thread(target=_spinner, args=("GENERATING MAP", done), daemon=True)
+    t.start()
+    try:
+        ibex.generateMapFromLink(str(link), cfg)
+    finally:
+        done.set()
+        t.join()
+    console.print("[bold green]Map generated.[/bold green]")
+
+
+@app.command("add-point")
+def cmd_add_point(
+    name: str = typer.Argument(...),
+    coords: str = typer.Argument(...),
+    color: str = typer.Option("black", "--color"),
+):
+    lon, lat = _parse_point(coords)
+    ibex.addPoint(name, (lon, lat), color)
+    console.print(f"[green]Added '{name}'.[/green]")
+
+
+@app.command("remove-point")
+def cmd_remove_point(name: str):
+    ibex.removePoint(name)
+    console.print(f"[yellow]Removed '{name}'.[/yellow]")
+
+
+@app.command("list-points")
+def cmd_list_points():
+    if not FEATURES_FILE.exists():
+        console.print("[italic]No points stored.[/italic]")
+        return
+    pts = json.loads(FEATURES_FILE.read_text()).get("points", [])
+    if not pts:
+        console.print("[italic]No points stored.[/italic]")
+        return
+    tbl = Table(title="Stored points")
+    tbl.add_column("Name", style="bold")
+    tbl.add_column("Lon")
+    tbl.add_column("Lat")
+    tbl.add_column("Color")
+    for p in pts:
+        lon, lat = ast.literal_eval(p["coordinates"])
+        tbl.add_row(p["name"], str(lon), str(lat), p.get("color", "black"))
+    console.print(tbl)
+
+
+@app.command("remove-all-points")
+def cmd_remove_all_points(yes: bool = typer.Option(False, "--yes", "-y")):
+    if not yes and not typer.confirm("DELETE ALL points?"):
+        raise typer.Exit()
+    ibex.removeAllPoints(); console.print("[yellow]All points removed.[/yellow]")
 
 
 @app.command("config-show")
-def config_show() -> None:
-    """Display current configuration."""
-    cfg = _load_cfg()
-    tbl = Table(title="IBEX Mapper Configuration")
-    tbl.add_column("Key", style="cyan")
-    tbl.add_column("Value", style="magenta")
-    tbl.add_column("Type", style="yellow")
-    for k, v in cfg.items():
-        tbl.add_row(k, str(v), type(v).__name__)
+def cmd_config_show():
+    cfg = _current_cfg(); tbl = Table(title="Configuration (raw JSON)")
+    for k, v in cfg.items(): tbl.add_row(k, str(v))
     console.print(tbl)
 
 
 @app.command("config-set")
-def config_set(
-    map_accuracy: Optional[int] = typer.Option(None, prompt=False),
-    max_l_to_cache: Optional[int] = typer.Option(None, prompt=False),
-    rotate: Optional[bool] = typer.Option(None, prompt=False),
-    central_point: Optional[str] = typer.Option(None, prompt=False),
-    meridian_point: Optional[str] = typer.Option(None, prompt=False),
-    allow_negative_values: Optional[bool] = typer.Option(None, prompt=False),
+def cmd_config_set(
+    map_accuracy: Optional[int] = typer.Option(None),
+    max_l_to_cache: Optional[int] = typer.Option(None),
+    rotate: Optional[bool] = typer.Option(None, "--rotate/--no-rotate"),
+    central_point: Optional[str] = typer.Option(None),
+    meridian_point: Optional[str] = typer.Option(None),
+    allow_negative_values: Optional[bool] = typer.Option(None, "--allow-neg/--disallow-neg"),
 ):
-    """Update selected configuration keys."""
-    cfg = _load_cfg()
-    updates: Dict[str, Any] = {}
-    if map_accuracy is not None:
-        updates["map_accuracy"] = map_accuracy
-    if max_l_to_cache is not None:
-        updates["max_l_to_cache"] = max_l_to_cache
-    if rotate is not None:
-        updates["rotate"] = rotate
-    if allow_negative_values is not None:
-        updates["allow_negative_values"] = allow_negative_values
-    if central_point:
-        updates["central_point"] = _parse_point(central_point)
-    if meridian_point:
-        updates["meridian_point"] = _parse_point(meridian_point)
-
-    if not updates:
-        rprint("[yellow]Nothing to update.[/yellow]")
-        raise typer.Exit()
-
-    cfg.update(updates)
-    _save_cfg(cfg)
-    rprint("[green]Configuration updated.[/green]")
-    config_show()
+    upd: Dict[str, Any] = {}
+    if map_accuracy is not None: upd["map_accuracy"] = map_accuracy
+    if max_l_to_cache is not None: upd["max_l_to_cache"] = max_l_to_cache
+    if rotate is not None: upd["rotate"] = rotate
+    if central_point is not None: upd["central_point"] = central_point
+    if meridian_point is not None: upd["meridian_point"] = meridian_point
+    if allow_negative_values is not None: upd["allow_negative_values"] = allow_negative_values
+    if not upd:
+        console.print("[red]Nothing to update.[/red]"); raise typer.Exit()
+    new_cfg = ibex.createNewConfig(upd); _save_cfg(new_cfg)
+    console.print("[green]Config updated.[/green]")
 
 
 @app.command("config-reset")
-def config_reset() -> None:
-    """Reset configuration to factory defaults."""
-    ibex.getObjectInstance().resetConfig()
-    rprint("[green]Configuration reset.[/green]")
-
-
-@app.command("add-point")
-def add_point(
-    name: str = typer.Option(..., prompt="Point name"),
-    coordinates: str = typer.Option(..., prompt="Coordinates (lon, lat)"),
-    color: str = typer.Option(..., prompt="Point colour"),
-):
-    """Add a new point that will later be plotted on the map."""
-    pt = _parse_point(coordinates)
-    ibex.getObjectInstance().addPoint(name, pt, color)
-    rprint(f"[green]Point '{name}' added: {pt}, colour {color}.[/green]")
-
-
-@app.command("list-points")
-def list_points() -> None:
-    """Show all stored points."""
-    if not POINTS_FILE.exists():
-        rprint("[yellow]No points defined.[/yellow]")
+def cmd_config_reset(yes: bool = typer.Option(False, "--yes", "-y")):
+    if not yes and not typer.confirm("Reset configuration to defaults?"):
         raise typer.Exit()
-
-    data = json.loads(POINTS_FILE.read_text())
-    points = data.get("points", [])
-    if not points:
-        rprint("[yellow]No points defined.[/yellow]")
-        raise typer.Exit()
-
-    tbl = Table(title="Defined Map Points")
-    tbl.add_column("Name", style="cyan")
-    tbl.add_column("Coordinates", style="green")
-    tbl.add_column("Colour", style="yellow")
-    for p in points:
-        tbl.add_row(p["name"], p["coordinates"], p["color"])
-    console.print(tbl)
+    ibex.resetConfigToDefaultConfig()
+    console.print("[yellow]Configuration reset.[/yellow]")
 
 
-@app.command("remove-point")
-def remove_point(name: str = typer.Argument(..., help="Name of the point to delete.")) -> None:
-    """Delete a single point."""
-    ibex.getObjectInstance().removePoint(name)
-    rprint(f"[green]Point '{name}' deleted.[/green]")
+_MENU = """
+[bold green]IBEX Mapper[/bold green]
+
+1 Generate map
+2 Add point
+3 Remove point
+4 List points
+5 Remove all points
+6 Show configuration
+7 Set configuration fields
+8 Reset configuration
+9 Exit
+"""
+
+def _prompt_point() -> Tuple[str, float, float, str]:
+    n = typer.prompt("Point name")
+    c = typer.prompt("Coordinates (lon, lat)")
+    col = typer.prompt("Color", default="black")
+    lon, lat = _parse_point(c)
+    return n, lon, lat, col
 
 
-@app.command("remove-all-points")
-def remove_all_points() -> None:
-    """Delete *all* stored points."""
-    ibex.getObjectInstance().removeAllPoints()
-    rprint("[green]All points wiped.[/green]")
-
-
-# ────────────────────────────────────────────────────────────────────────────────
-# Interactive mode (REPL)
-# ────────────────────────────────────────────────────────────────────────────────
-def _interactive_shell() -> None:
-    console.print(INTRO_MESSAGE)
-    console.print("[bold cyan]Type a command, 'help', or 'exit'.[/bold cyan]")
+def _menu_loop() -> None:
+    print(INTRO_MESSAGE)
     while True:
+        console.clear()
+        console.print(_MENU)
+        choice = typer.prompt("Select option", type=int)
         try:
-            line = input("IBEX> ").strip()
-        except (EOFError, KeyboardInterrupt):
-            console.print()
-            break
+            if choice == 1:
+                p = typer.prompt("Path to data file", prompt_suffix=" -> ")
+                cfg_on = typer.confirm("Use saved configuration?", default=True)
+                cmd_generate(Path(p), cfg_on)
+            elif choice == 2:
+                n, lon, lat, col = _prompt_point()
+                ibex.addPoint(n, (lon, lat), col)
+                console.print(f"[green]Added '{n}'.[/green]")
+            elif choice == 3:
+                n = typer.prompt("Name to remove")
+                ibex.removePoint(n)
+                console.print(f"[yellow]Removed '{n}'.[/yellow]")
+            elif choice == 4:
+                cmd_list_points()
+            elif choice == 5:
+                if typer.confirm("DELETE ALL points?", default=False): ibex.removeAllPoints()
+                console.print("[yellow]All points removed.[/yellow]")
+            elif choice == 6:
+                cmd_config_show()
+            elif choice == 7:
+                console.print("Leave blank to keep value.")
+                ma = typer.prompt("map_accuracy", default="")
+                ml = typer.prompt("max_l_to_cache", default="")
+                rot = typer.prompt("rotate (true/false)", default="")
+                cp = typer.prompt("central_point", default="")
+                mp = typer.prompt("meridian_point", default="")
+                an = typer.prompt("allow_negative_values (true/false)", default="")
+                upd: Dict[str, Any] = {}
+                if ma: upd["map_accuracy"] = int(ma)
+                if ml: upd["max_l_to_cache"] = int(ml)
+                if rot.lower() in {"true", "false"}: upd["rotate"] = rot.lower() == "true"
+                if cp: upd["central_point"] = cp
+                if mp: upd["meridian_point"] = mp
+                if an.lower() in {"true", "false"}: upd["allow_negative_values"] = an.lower() == "true"
+                if upd:
+                    _save_cfg(ibex.createNewConfig(upd))
+                    console.print("[green]Config updated.[/green]")
+                else:
+                    console.print("[italic]Nothing changed.[/italic]")
+            elif choice == 8:
+                if typer.confirm("Reset configuration to defaults?", default=False): ibex.resetConfigToDefaultConfig()
+                console.print("[yellow]Configuration reset.[/yellow]")
+            elif choice == 9:
+                console.print("[cyan]Goodbye[/cyan]")
+                break
+            else:
+                console.print("[red]Invalid choice.[/red]")
+        except Exception as e:
+            console.print(f"[red]Error:[/red] {e}")
+        typer.echo()
+        typer.pause("Press any key to continue…")
 
-        if not line:
-            continue
-        if line.lower() in {"exit", "quit"}:
-            break
-        if line.lower() == "help":
-            console.print(app.get_help(rich_markup_mode="rich"))
-            continue
-        try:
-            app(shlex.split(line), standalone_mode=False)
-        except SystemExit as exc:
-            # Click/Typer converts every successful run into SystemExit(0)
-            if exc.code not in (0, None):
-                rprint(f"[red]Command aborted (exit code {exc.code}).[/red]")
-        except Exception as exc:         # noqa: BLE001
-            rprint(f"[red]Error:[/red] {exc}")
+
+@app.command("menu", help="Start interactive menu")
+def cmd_menu():
+    _menu_loop()
 
 
-# ────────────────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        # run as a normal CLI
-        app()
+    if len(sys.argv) == 1:
+        _menu_loop()
     else:
-        # no extra args → REPL
-        _interactive_shell()
-    # start_time = time.time()
-    # main()
-    # print("--- %s seconds ---" % (round(time.time() - start_time, 2)))
-    cli()
-    mapper = ib.getObjectInstance()
-    np.set_printoptions(precision=8, suppress=True, floatmode='fixed')
-    config = mapper.formatConfigDatastructures(mapper.getDefaultConfig())
-    initial_center = np.array([0, 0])
-    target_center = config["central_point"]
-    meridian_vector = config["meridian_point"]
-#     print("-------------------------------------------------------")
-#     print("Vectors in degrees:")
-#     print(f"Central vector: {initial_center}")
-#     print(f"Target center vector: {target_center}")
-#     print(f"Meridian vector: {meridian_vector}")
-#     initial_center_in_cartesian = mapper.calculator.convertSphericalToCartesian(np.deg2rad(np.array(initial_center[0])), np.deg2rad(np.array(initial_center[1])))
-#     target_center_in_cartesian = mapper.calculator.convertSphericalToCartesian(np.deg2rad(np.array(target_center[0])), np.deg2rad(np.array(target_center[1])))
-#     meridian_vector_in_cartesian = mapper.calculator.convertSphericalToCartesian(np.deg2rad(np.array(meridian_vector[0])), np.deg2rad(np.array(meridian_vector[1])))
-#     print("-------------------------------------------------------")
-#     print("Vectors in cartesian coordinates: ")
-#     print(f"Central vector: {initial_center_in_cartesian}")
-#     print(f"Target center vector: {target_center_in_cartesian}")
-#     print(f"Meridian vector: {meridian_vector_in_cartesian}")
-#     central_rotation = mapper.configurator.buildCenteringRotation(target_center)
-#     meridian_rotation = mapper.configurator.buildMeridianRotation(meridian_vector, central_rotation)
-#     print("-------------------------------------------------------")
-#     print("Rotations: ")
-#     print(f"Central rotation: \n{central_rotation}")
-#     print(f"Meridian rotation: \n{meridian_rotation}")
-#     initial_center_in_cartesian_after_1st_rotation = central_rotation @ initial_center_in_cartesian
-#     target_center_in_cartesian_after_1st_rotation = central_rotation @ target_center_in_cartesian
-#     meridian_vector_in_cartesian_after_1st_rotation = central_rotation @ meridian_vector_in_cartesian
-#     print("-------------------------------------------------------")
-#     print("Vectors after first rotation in spherical coordinates: ")
-#     print(f"Initial central vector: {np.rad2deg(np.array(mapper.calculator
-#         .convertCartesianToSpherical(initial_center_in_cartesian_after_1st_rotation[0],
-#                                    initial_center_in_cartesian_after_1st_rotation[1],
-#                                    initial_center_in_cartesian_after_1st_rotation[2])))}")
-#     print(f"Target center vector: {np.rad2deg(np.array(mapper.calculator
-#       .convertCartesianToSpherical(target_center_in_cartesian_after_1st_rotation[0],
-#                                    target_center_in_cartesian_after_1st_rotation[1],
-#                                    target_center_in_cartesian_after_1st_rotation[2])))}")
-#     print(f"Meridian vector: {np.rad2deg(np.array(mapper.calculator
-#       .convertCartesianToSpherical(meridian_vector_in_cartesian_after_1st_rotation[0],
-#                                    meridian_vector_in_cartesian_after_1st_rotation[1],
-#                                    meridian_vector_in_cartesian_after_1st_rotation[2])))}")
-#     print("-------------------------------------------------------")
-#     print("Vectors after first rotation in cartesian coordinates: ")
-#     print(f"Central vector: {initial_center_in_cartesian_after_1st_rotation}")
-#     print(f"Target center vector: {target_center_in_cartesian_after_1st_rotation}")
-#     print(f"Meridian vector: {meridian_vector_in_cartesian_after_1st_rotation}")
-#     initial_center_in_cartesian_after_2nd_rotation = meridian_rotation @ initial_center_in_cartesian_after_1st_rotation
-#     target_center_in_cartesian_after_2nd_rotation = meridian_rotation @ target_center_in_cartesian_after_1st_rotation
-#     meridian_vector_in_cartesian_after_2nd_rotation = meridian_rotation @ meridian_vector_in_cartesian_after_1st_rotation
-#     print("-------------------------------------------------------")
-#     print("Vectors after second rotation in spherical coordinates: ")
-#     print(f"Initial central vector: {np.rad2deg(np.array(mapper.calculator
-#                                                      .convertCartesianToSpherical(initial_center_in_cartesian_after_2nd_rotation[0],
-#                                                                                   initial_center_in_cartesian_after_2nd_rotation[1],
-#                                                                                   initial_center_in_cartesian_after_2nd_rotation[2]))) }")
-#     print(f"Target center vector: {np.rad2deg(np.array(mapper.calculator
-#                                     .convertCartesianToSpherical(target_center_in_cartesian_after_2nd_rotation[0],
-#                                                                  target_center_in_cartesian_after_2nd_rotation[1],
-#                                                                  target_center_in_cartesian_after_2nd_rotation[2])))}")
-#     print(f"Meridian vector: {np.rad2deg(np.array(mapper.calculator
-#                                .convertCartesianToSpherical(meridian_vector_in_cartesian_after_2nd_rotation[0],
-#                                                             meridian_vector_in_cartesian_after_2nd_rotation[1],
-#                                                             meridian_vector_in_cartesian_after_2nd_rotation[2])))}")
-#     print("-------------------------------------------------------")
-#     print("Vectors after second rotation in cartesian coordinates: ")
-#     print(f"Central vector: {initial_center_in_cartesian_after_2nd_rotation}")
-#     print(f"Target center vector: {target_center_in_cartesian_after_2nd_rotation}")
-#     print(f"Meridian vector: {meridian_vector_in_cartesian_after_2nd_rotation}")
-#     combined_rotation = meridian_rotation @ central_rotation
-#     print("-------------------------------------------------------")
-#     print(f"Combined rotation: \n{combined_rotation}")
-#     initial_center_in_cartesian_after_combined_rotation = combined_rotation @ initial_center_in_cartesian
-#     target_center_in_cartesian_after_combined_rotation = combined_rotation @ target_center_in_cartesian
-#     meridian_vector_in_cartesian_after_combined_rotation = combined_rotation @ meridian_vector_in_cartesian
-#     print("-------------------------------------------------------")
-#     print("Vectors after combined rotation in spherical coordinates: ")
-#     print(f"Initial central vector: {np.rad2deg(np.array(mapper.calculator
-#                                                      .convertCartesianToSpherical(initial_center_in_cartesian_after_combined_rotation[0],
-#                                                                                   initial_center_in_cartesian_after_combined_rotation[1],
-#                                                                                   initial_center_in_cartesian_after_combined_rotation[2]))) }")
-#     print(f"Target center vector: {np.rad2deg(np.array(mapper.calculator
-#                                                    .convertCartesianToSpherical(target_center_in_cartesian_after_combined_rotation[0],
-#                                                                                 target_center_in_cartesian_after_combined_rotation[1],
-#                                                                                 target_center_in_cartesian_after_combined_rotation[2])))}")
-#     print(f"Meridian vector: {np.rad2deg(np.array(mapper.calculator
-#                                               .convertCartesianToSpherical(meridian_vector_in_cartesian_after_combined_rotation[0],
-#                                                                            meridian_vector_in_cartesian_after_combined_rotation[1],
-#                                                                            meridian_vector_in_cartesian_after_combined_rotation[2])))}")
-#     print("-------------------------------------------------------")
-#     print("Vectors after combined rotation in cartesian coordinates: ")
-#     print(f"Central vector: {initial_center_in_cartesian_after_combined_rotation}")
-#     print(f"Target center vector: {target_center_in_cartesian_after_combined_rotation}")
-#     print(f"Meridian vector: {meridian_vector_in_cartesian_after_combined_rotation}")
-    
+        app()
