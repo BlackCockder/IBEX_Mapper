@@ -3,6 +3,7 @@ from .calculator import Calculator
 from .configurator import Configurator
 from .projection import Projection
 from .handler import Handler
+from .map_features import MapFeatures
 import numpy as np
 from copy import deepcopy
 import ast
@@ -16,11 +17,12 @@ class IBEXMapper:
     FEATURES_FILE = os.path.join(FEATURES_DIR, "map_features.json")
 
     def __init__(self, projection: Projection, calculator: Calculator, configurator: Configurator,
-                 handler: Handler) -> None:
+                 handler: Handler, map_features: MapFeatures) -> None:
         self.projection = projection
         self.calculator = calculator
         self.configurator = configurator
         self.handler = handler
+        self.map_features = map_features
 
         os.makedirs(self.CONFIG_DIR, exist_ok=True)
 
@@ -32,11 +34,15 @@ class IBEXMapper:
             with open(self.FEATURES_FILE, "w") as f:
                 json.dump({"points": [], "circles": []}, f, indent=4)
 
-    def generateMapFromLink(self, file_path: str, config=None) -> None:
+    def generateSingleMapFromGivenFilePath(self, file_path: str, config=None) -> None:
         imported_data = np.loadtxt(file_path, comments='#')
         if config is None:
             config = self.formatConfigDatastructures(self.getDefaultConfig())
 
+        config["central_point"] = np.array(config["central_point"])
+        config["meridian_point"] = np.array(config["meridian_point"])
+        print(config["central_point"])
+        print(config["meridian_point"])
         heatmap_data = self.handler.processUserDataset(config["map_accuracy"], config["max_l_to_cache"], imported_data)
         if config["rotate"]:
             lon = np.linspace(np.pi, -np.pi, config["map_accuracy"])
@@ -153,8 +159,8 @@ class IBEXMapper:
             "map_accuracy": int,
             "max_l_to_cache": int,
             "rotate": bool,
-            "central_point": np.ndarray,
-            "meridian_point": np.ndarray,
+            "central_point": tuple[float, float],
+            "meridian_point": tuple[float, float],
             "allow_negative_values": bool,
         }
 
@@ -172,13 +178,12 @@ class IBEXMapper:
     def parseDataToCorrectType(self, value, expected_type):
         if expected_type == bool:
             return str(value).lower() == "true"
-        elif expected_type == int:
+        if expected_type == int:
             return int(value)
-        elif expected_type == np.ndarray:
-            tuple_val = ast.literal_eval(value)
-            return np.array(tuple_val)
-        else:
-            return value
+        if expected_type == tuple[float, float]:
+            parsed = ast.literal_eval(value)
+            return tuple(float(x) for x in parsed)
+        return value
 
     def assertConfig(self, config: dict) -> None:
         if "map_accuracy" in config:

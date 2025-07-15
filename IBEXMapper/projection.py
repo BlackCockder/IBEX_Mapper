@@ -4,8 +4,7 @@ from pathlib import Path
 from matplotlib.colors import LinearSegmentedColormap
 from .configurator import Configurator
 from .calculator import Calculator
-from matplotlib.offsetbox import AnchoredText, OffsetImage, AnnotationBbox
-import matplotlib.image as mpimg
+from matplotlib.offsetbox import AnchoredText
 import json
 import os
 
@@ -20,8 +19,8 @@ class Projection:
         self.configurator = configurator
 
     def _split_at_wrap(self, lon_r, lat_r, thresh=np.pi):
-        """Return copies of *lon_r*, *lat_r* with NaNs inserted wherever the curve
-        crosses the ±π seam, so Matplotlib starts a new segment there."""
+        """Return copies of lon_r, lat_r with NaNs inserted wherever the curve
+        crosses the +/- pi seam, so Matplotlib starts a new segment there."""
         jump = np.abs(np.diff(lon_r)) > thresh
         if not jump.any():
             return lon_r, lat_r
@@ -110,8 +109,8 @@ class Projection:
         # ax.text(x=-np.pi, y=np.pi/2, s=f"NUMBER: {number}")
         ax.set_title("IBEX Mapper")
 
-        Rotation1 = self.configurator.buildCenteringRotation(np.array(central_coords))
-        Rotation2 = self.configurator.buildMeridianRotation(np.array(meridian_coords), Rotation1)
+        Rotation1 = self.configurator.buildCenteringRotation(central_coords)
+        Rotation2 = self.configurator.buildMeridianRotation(meridian_coords, Rotation1)
 
         central_vector_point = self.calculator.convertSphericalToCartesian(np.deg2rad(central_coords[0]), np.deg2rad(central_coords[1]))
         meridian_vector_point = self.calculator.convertSphericalToCartesian(np.deg2rad(meridian_coords[0]), np.deg2rad(meridian_coords[1]))

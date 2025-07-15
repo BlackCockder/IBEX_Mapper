@@ -3,26 +3,29 @@ from .configurator import Configurator
 from .projection import Projection
 from .handler import Handler
 from .app import IBEXMapper as _IBEXMapperClass
-
+from .map_features import MapFeatures
 
 _calculator = Calculator()
 _configurator = Configurator(_calculator)
 _projection = Projection(_calculator, _configurator)
 _handler = Handler(_calculator)
-_mapper = _IBEXMapperClass(_projection, _calculator, _configurator, _handler)
-
+_map_features = MapFeatures()
+_mapper = _IBEXMapperClass(_projection, _calculator, _configurator, _handler, _map_features)
 
 def getObjectInstance() -> _IBEXMapperClass:
     return _mapper
 
 
 def generateMapFromLink(link: str, config=None) -> None:
-    return _mapper.generateMapFromLink(link, config)
+    return _mapper.generateSingleMapFromGivenFilePath(link, config)
 
+# CONFIG
 
 def setDefaultConfig(config: dict) -> None:
     return _mapper.setDefaultConfig(config)
 
+def getDefaultConfig() -> dict:
+    return _mapper.formatConfigDatastructures(_mapper.getDefaultConfig())
 
 def resetConfigToDefaultConfig() -> None:
     return _mapper.resetConfig()
@@ -31,30 +34,73 @@ def resetConfigToDefaultConfig() -> None:
 def createNewConfig(config: dict) -> dict:
     return _mapper.generateConfigFromPartialInfo(config)
 
+# POINTS
 
 def addPoint(point_name: str, point: tuple[float, float], color: str) -> None:
-    return _mapper.addPoint(point_name, point, color)
+    return _mapper.map_features.addPoint(point_name, point, color)
 
 
-# def addCircle(name: str, point: tuple[float, float], angle: float) -> None:
-#     return _projection.addCircle(name, point, angle)
-#
-#
 def removePoint(point_name: str) -> None:
-    return _mapper.removePoint(point_name)
+    return _mapper.map_features.removePoint(point_name)
 
 
-# def removeCircle(circle_name: str) -> None:
-#     return _projection.removeCircle(circle_name)
-#
-#
 def removeAllPoints() -> None:
-    return _mapper.removeAllPoints()
+    return _mapper.map_features.removeAllPoints()
+
+# CIRCLES
+
+def addCircle(name: str, point: tuple[float, float], angle: float) -> None:
+    return _mapper.map_features.addCircle(name, point, angle)
 
 
-# def removeAllCircles() -> None:
-#     return _projection.removeAllCircles()
-#
+def removeCircle(circle_name: str) -> None:
+    return _mapper.map_features.removeCircle(circle_name)
+
+
+def removeAllCircles() -> None:
+    return _mapper.map_features.removeAllCircles()
+
+# TEXTS
+
+def addMapText(n, coords: tuple[float, float], text: str, col: str) -> None:
+    return _mapper.map_features.addMapText(n, coords, text, col)
+
+def removeMapText(name: str) -> None:
+    return _mapper.map_features.removeMapText(name)
+
+def removeAllMapText() -> None:
+    return _mapper.map_features.removeAllMapText()
+
+# HEATMAP BARS
+
+def changeHeatmapScale(color):
+    return _mapper.map_features.changeHeatmapScale(color)
+
+def resetHeatmapScaleToDefault():
+    return _mapper.map_features.resetHeatmapScaleToDefault()
+
+# HEATMAPS
+
+def resetHeatmapColorPalette():
+    return _mapper.map_features.resetHeatmapColorPalette()
+
+def selectHeatmapColorPalette(color: str) -> None:
+    return _mapper.map_features.selectHeatmapColorPalette(color)
+
 #
 # def cleanMap() -> None:
 #     return _mapper.cleanMap()
+
+
+
+
+
+
+
+
+
+
+
+
+
+

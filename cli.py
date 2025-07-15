@@ -11,6 +11,8 @@ import typer
 from rich.console import Console
 from rich.table import Table
 import IBEXMapper as ibex
+import traceback
+from rich.traceback import install
 
 INTRO_MESSAGE = r"""
  ___ ____  _______  __    __  __    _    ____  ____  _____ ____  
@@ -53,18 +55,13 @@ def _parse_point(txt: str) -> Tuple[float, float]:
 def _current_cfg() -> Dict[str, Any]:
     if not CONFIG_FILE.exists():
         mapper.resetConfig()
-    return json.loads(CONFIG_FILE.read_text())
+    return ibex.getDefaultConfig()
 
-
-def _typed_cfg(raw: Dict[str, Any]) -> Dict[str, Any]:
-    """Convert *raw* JSON values from disk to properly typed config dict."""
-    mapper = ibex.getObjectInstance()
-    return mapper.formatConfigDatastructures(raw)
 
     # return ibex.createNewConfig(raw)
 
 
-def _save_cfg(cfg: Dict[str, Any]) -> None:
+def _save_cfg(cfg: dict) -> None:
     ibex.setDefaultConfig(cfg)
 
 @app.command("generate", help="Generate map from data file (spinner always on).")
@@ -72,7 +69,8 @@ def cmd_generate(
     link: Path = typer.Argument(..., exists=True, readable=True),
     use_saved_config: bool = typer.Option(True, "--config/--no-config"),
 ):
-    cfg: Optional[Dict[str, Any]] = _typed_cfg(_current_cfg()) if use_saved_config else None
+    cfg: Optional[Dict[str, Any]] = _current_cfg() if use_saved_config else None
+    print(cfg)
     done = threading.Event()
     t = threading.Thread(target=_spinner, args=("GENERATING MAP", done), daemon=True)
     t.start()
@@ -121,13 +119,6 @@ def cmd_list_points():
     console.print(tbl)
 
 
-@app.command("remove-all-points")
-def cmd_remove_all_points(yes: bool = typer.Option(False, "--yes", "-y")):
-    if not yes and not typer.confirm("DELETE ALL points?"):
-        raise typer.Exit()
-    ibex.removeAllPoints(); console.print("[yellow]All points removed.[/yellow]")
-
-
 @app.command("config-show")
 def cmd_config_show():
     cfg = _current_cfg(); tbl = Table(title="Configuration (raw JSON)")
@@ -165,18 +156,30 @@ def cmd_config_reset(yes: bool = typer.Option(False, "--yes", "-y")):
     console.print("[yellow]Configuration reset.[/yellow]")
 
 
-_MENU = """
-[bold green]IBEX Mapper[/bold green]
+_MENU = """  
+[bold green]IBEX MAPPER[/bold green]  
 
-1 Generate map
-2 Add point
-3 Remove point
-4 List points
-5 Remove all points
-6 Show configuration
-7 Set configuration fields
-8 Reset configuration
-9 Exit
+ 1 Generate map  
+ 2 Add point  
+ 3 Remove point  
+ 4 List points  
+ 5 Remove all points
+6* Add circle
+7* Remove circle
+8* List circles
+9* Remove all circles
+10* Add text
+11* Remove text
+12* List all text
+13* Remove all texts
+14* Change heatmap color
+15** Change heatmap scale
+16** Clear heatmap scale
+17 (15) (6) Show configuration  
+18 (16) (7) Set configuration fields  
+19 (17) (8) Reset configuration
+20* Set selected configuration as default  
+21 (20) (18) (9) Exit  
 """
 
 def _prompt_point() -> Tuple[str, float, float, str]:
@@ -188,32 +191,113 @@ def _prompt_point() -> Tuple[str, float, float, str]:
 
 
 def _menu_loop() -> None:
-    print(INTRO_MESSAGE)
+    console.print(f"[purple]{INTRO_MESSAGE}[/purple]")
     while True:
         console.clear()
         console.print(_MENU)
         choice = typer.prompt("Select option", type=int)
         try:
-            if choice == 1:
+            if choice == 1: # generate map
+                # generateMapFromLink i InputFolder / totalnie to zmiany
                 p = typer.prompt("Path to data file", prompt_suffix=" -> ")
                 cfg_on = typer.confirm("Use saved configuration?", default=True)
                 cmd_generate(Path(p), cfg_on)
-            elif choice == 2:
+            elif choice == 2: # add point
+                # git
                 n, lon, lat, col = _prompt_point()
                 ibex.addPoint(n, (lon, lat), col)
                 console.print(f"[green]Added '{n}'.[/green]")
-            elif choice == 3:
-                n = typer.prompt("Name to remove")
+            elif choice == 3: # remove point
+                # git
+                n = typer.prompt("Name to remove:")
                 ibex.removePoint(n)
                 console.print(f"[yellow]Removed '{n}'.[/yellow]")
-            elif choice == 4:
+            elif choice == 4: # list points
+                # nie tykac
                 cmd_list_points()
-            elif choice == 5:
-                if typer.confirm("DELETE ALL points?", default=False): ibex.removeAllPoints()
+            elif choice == 5: # remove all points
+                # git
+                if typer.confirm("DELETE ALL points?", default=False):
+                    ibex.removeAllPoints()
                 console.print("[yellow]All points removed.[/yellow]")
-            elif choice == 6:
+            elif choice == 6: # add circle
+                # prawie git
+                n, lon, lat, col = _prompt_point()
+                ibex.addCircle(n, (lon, lat), col)
+                console.print(f"[green]Added circle '{n}'.[/green]")
+            elif choice == 7: # remove circle
+                n = typer.prompt("Name of circle to remove")
+                ibex.removeCircle(n)
+                console.print(f"[yellow]Removed circle '{n}'.[/yellow]")
+            elif choice == 8: # list circles
+                # nie tykac
+                circles = ibex.listCircles()
+                if not circles:
+                    console.print("[italic]No circles stored.[/italic]")
+                    continue
+                tbl = Table(title="Stored circles")
+                tbl.add_column("Name", style="bold")
+                tbl.add_column("Lon")
+                tbl.add_column("Lat")
+                tbl.add_column("Color")
+                for c in circles:
+                    lon, lat = ast.literal_eval(c["coordinates"])
+                    tbl.add_row(c["name"], str(lon), str(lat), c.get("color", "black"))
+                console.print(tbl)
+            elif choice == 9: # remove all circles
+                # git
+                if typer.confirm("DELETE ALL circles?", default=False):
+                    ibex.removeAllCircles()
+                console.print("[yellow]All circles removed.[/yellow]")
+            elif choice == 10: # add text
+                # nie tykac
+                n = typer.prompt("Text name")
+                c = typer.prompt("Coordinates (lon, lat)")
+                col = typer.prompt("Color", default="black")
+                text = typer.prompt("Text content")
+                lon, lat = _parse_point(c)
+                ibex.addMapText(n, (lon, lat), text, col)
+                console.print(f"[green]Added text '{n}'.[/green]")
+            elif choice == 11: # remove text
+                # git
+                n = typer.prompt("Name of text to remove")
+                ibex.removeMapText(n)
+                console.print(f"[yellow]Removed text '{n}'.[/yellow]")
+            elif choice == 12: # list all texts
+                texts = ibex.listTexts()
+                if not texts:
+                    console.print("[italic]No texts stored.[/italic]")
+                    continue
+                tbl = Table(title="Stored texts")
+                tbl.add_column("Name", style="bold")
+                tbl.add_column("Lon")
+                tbl.add_column("Lat")
+                tbl.add_column("Color")
+                tbl.add_column("Content")
+                for t in texts:
+                    lon, lat = ast.literal_eval(t["coordinates"])
+                    tbl.add_row(t["name"], str(lon), str(lat), t.get("color", "black"), t["content"])
+                console.print(tbl)
+            elif choice == 13: # remove all texts
+                # git
+                if typer.confirm("DELETE ALL texts?", default=False):
+                    ibex.removeAllMapText()
+                console.print("[yellow]All texts removed.[/yellow]")
+            elif choice == 14: # change heatmap color
+                # git
+                color = typer.prompt("New heatmap color", default="blue")
+                ibex.selectHeatmapColorPalette(color)
+                console.print(f"[green]Heatmap color set to '{color}'.[/green]")
+            elif choice == 15: # change heatmap scale
+                color = typer.prompt("New heatmap scale", default="magma")
+                ibex.changeHeatmapScale(color)
+                console.print(f"[green]Heatmap scale set to '{color}'.[/green]")
+            elif choice == 16: # clear heatmap scale
+                ibex.resetHeatmapScaleToDefault()
+            elif choice == 17: # show configuration
+                # nie tykac
                 cmd_config_show()
-            elif choice == 7:
+            elif choice == 18: # set configuration fields
                 console.print("Leave blank to keep value.")
                 ma = typer.prompt("map_accuracy", default="")
                 ml = typer.prompt("max_l_to_cache", default="")
@@ -221,30 +305,39 @@ def _menu_loop() -> None:
                 cp = typer.prompt("central_point", default="")
                 mp = typer.prompt("meridian_point", default="")
                 an = typer.prompt("allow_negative_values (true/false)", default="")
-                upd: Dict[str, Any] = {}
+                upd: dict = {}
                 if ma: upd["map_accuracy"] = int(ma)
                 if ml: upd["max_l_to_cache"] = int(ml)
                 if rot.lower() in {"true", "false"}: upd["rotate"] = rot.lower() == "true"
                 if cp: upd["central_point"] = cp
                 if mp: upd["meridian_point"] = mp
-                if an.lower() in {"true", "false"}: upd["allow_negative_values"] = an.lower() == "true"
+                if an.lower() in {"true", "false"}:
+                    upd["allow_negative_values"] = an.lower() == "true"
                 if upd:
-                    _save_cfg(ibex.createNewConfig(upd))
-                    console.print("[green]Config updated.[/green]")
+                    # _save_cfg(ibex.createNewConfig(upd))
+                    console.print("[green]Config updated until exiting the program.[/green]")
                 else:
                     console.print("[italic]Nothing changed.[/italic]")
-            elif choice == 8:
-                if typer.confirm("Reset configuration to defaults?", default=False): ibex.resetConfigToDefaultConfig()
+            elif choice == 19: # reset configuration
+                if typer.confirm("Reset configuration to defaults?", default=False):
+                    ibex.resetConfigToDefaultConfig()
                 console.print("[yellow]Configuration reset.[/yellow]")
-            elif choice == 9:
+            elif choice == 20: # set selected configuration as default
+                pass
+            elif choice == 21: # exit
                 console.print("[cyan]Goodbye[/cyan]")
                 break
             else:
                 console.print("[red]Invalid choice.[/red]")
         except Exception as e:
-            console.print(f"[red]Error:[/red] {e}")
+            # console.print(f"[red]Error:[/red] {e}")
+            # console.print("[red]An unexpected error occurred:[/red]")
+            print(e)
+            install(show_locals=True)
+            raise
         typer.echo()
         typer.pause("Press any key to continue…")
+
 
 
 @app.command("menu", help="Start interactive menu")
