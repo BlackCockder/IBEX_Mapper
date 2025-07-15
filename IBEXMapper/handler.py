@@ -1,3 +1,4 @@
+import ast
 from pathlib import Path
 import numpy as np
 from .calculator import Calculator
@@ -5,7 +6,8 @@ from .calculator import Calculator
 
 class Handler:
     """
-    This class is responsible for using logic from calculator to build the final heatmap matrix.
+    This class is responsible for using logic from calculator to build the final heatmap matrix
+    and for sanitizing user given data.
     """
     def __init__(self, calculator: Calculator):
         self.calculator = calculator
@@ -78,3 +80,164 @@ class Handler:
 
     def loadSphericalHarmonicsFromCache(self, file_path: Path) -> np.ndarray:
         return np.load(file_path, allow_pickle=True)
+
+    def stringifyValue(self, value):
+        return
+
+    def formatConfigToPythonDatastructures(self, config: dict) -> dict:
+        """
+        Method that formats the stringlified config dictionary into config dictionary with correct python datatypes.
+
+        :param config:
+        Given config to format.
+        Note: It is assumed that the config is valid config dictionary.
+
+        :return:
+        Returns config dictionary formatted to correct python datastructures.
+        """
+
+        # Agreed schema of config datatypes.
+        config_types_schema = {
+            "map_accuracy": int,
+            "max_l_to_cache": int,
+            "rotate": bool,
+            "central_point": tuple[float, float],
+            "meridian_point": tuple[float, float],
+            "allow_negative_values": bool,
+        }
+
+        # Initializing formatted config dictionary.
+        formatted_config = {}
+
+        # Loop over both key and value and try to parse it into correct datatype using other handler method.
+        for key, value in config.items():
+
+            # Get the expected type from schema
+            expected_type = config_types_schema.get(key, str)
+
+            try:
+
+                # Use parseStringToPythonDatastructure to parse data.
+                formatted_config[key] = self.parseStringToPythonDatastructure(value, expected_type)
+
+            except Exception as e:
+
+                # If the parser is written correctly, this shouldn't fire even once.
+                raise ValueError(f"Error parsing key '{key}' with value '{value}': {e}")
+
+        return formatted_config
+
+    def formatMapFeaturesToPythonDatastructures(self, config: dict) -> dict:
+        config_types_schema = {
+            "points": [
+                {
+                    "name": str,
+                    "coordinates": tuple[float, float],
+                    "color": str,
+                    "do_show_text": bool,
+                    "point_type": str
+                }
+            ],
+            "circles": [
+                {
+                    "name": str,
+                    "center_coordinates": tuple[float, float],
+                    "alpha": float,
+                    "color": str
+                }
+            ],
+            "rotate": bool,
+            "central_point": tuple[float, float],
+            "meridian_point": tuple[float, float],
+            "allow_negative_values": bool,
+        }
+
+        formatted_config = {}
+
+        for key, value in config.items():
+            expected_type = config_types_schema.get(key, str)
+            try:
+                formatted_config[key] = self.parseConfigDataToCorrectType(value, expected_type)
+            except Exception as e:
+                raise ValueError(f"Error parsing key '{key}' with value '{value}': {e}")
+
+        return formatted_config
+
+    def parseStringToPythonDatastructure(self, value, expected_type):
+        if expected_type == bool:
+            return str(value).lower() == "true"
+        elif expected_type == int:
+            return int(value)
+        elif expected_type == tuple[float, float]:
+            tuple_val = ast.literal_eval(value)
+            return np.array(tuple_val)
+        else:
+            return value
+
+    def assertConfig(self, config: dict) -> None:
+        if "map_accuracy" in config:
+            try:
+                map_accuracy = config["map_accuracy"]
+                if map_accuracy <= 0:
+                    raise ValueError("Map accuracy must be a positive integer.")
+            except (ValueError, TypeError):
+                raise TypeError("Map accuracy must be a positive integer.")
+
+        if "max_l_to_cache" in config:
+            try:
+                max_l = config["max_l_to_cache"]
+                if max_l <= 0:
+                    raise ValueError("Max l must be a positive integer.")
+            except (ValueError, TypeError):
+                raise ValueError("Max l must be a positive integer.")
+
+        if "rotate" in config:
+            rotate = config["rotate"]
+            if isinstance(rotate, str):
+                if rotate.lower() not in ("true", "false"):
+                    raise ValueError("Rotate must be a boolean or a string 'True'/'False'.")
+            elif not isinstance(rotate, bool):
+                raise ValueError("Rotate must be a boolean.")
+
+        if "allow_negative_values" in config:
+            allow_negative_values = config["allow_negative_values"]
+            if isinstance(allow_negative_values, str):
+                if allow_negative_values.lower() not in ("true", "false"):
+                    raise ValueError("Allow negative values must be a boolean or a string 'True'/'False'.")
+            elif not isinstance(allow_negative_values, bool):
+                raise ValueError("Allow negative values must be a boolean.")
+
+        def validate_geo_point(name, val):
+            try:
+                if isinstance(val, str):
+                    val = ast.literal_eval(val)
+                arr = np.array(val)
+                if arr.ndim != 1 or arr.shape[0] != 2:
+                    raise ValueError(f"{name} must be a 1D array of two values.")
+                lon, lat = arr
+                if not (-180 <= lon <= 180 and -90 <= lat <= 90):
+                    raise ValueError(f"{name} coordinates out of bounds: "
+                                     f"longitude must be in [-180, 180], latitude in [-90, 90].")
+            except Exception:
+                raise ValueError(f"{name} must be a 1D array-like structure of two floats (e.g., (lon, lat)).")
+
+        if "central_point" in config:
+            validate_geo_point("Central point", config["central_point"])
+
+        if "meridian_point" in config:
+            validate_geo_point("Meridian point", config["meridian_point"])
+
+    def assertPoint(self):
+        return
+
+    def assertCircle(self):
+        return
+
+    def assertText(self):
+        return
+
+    def assertHeatmapScale(self):
+        return
+
+    def assertHeatmapColor(self):
+        return
