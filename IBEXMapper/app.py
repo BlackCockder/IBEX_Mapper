@@ -6,7 +6,6 @@ from .handler import Handler
 from .map_features import MapFeatures
 import numpy as np
 from copy import deepcopy
-import ast
 import os
 
 
@@ -90,8 +89,8 @@ class IBEXMapper:
 
     def getDefaultConfig(self) -> dict:
         """
-        Method that fetches config as python dictionary and returns it with parsed data from strings to
-        python datastructures.
+        Method that fetches config from config/config.json file as python dictionary
+        and returns it with parsed data from strings to python datastructures.
         """
 
         # Loads the config/config.json file.
@@ -108,11 +107,11 @@ class IBEXMapper:
 
         :param config:
         Dictionary with chosen config.
-        Note: This dictionary is NOT stringlified.
+        Note: This dictionary is NOT stringlified and assumed valid.
         """
 
         # Stringlifies the config dictionary.
-        stringlified_config = {key: self.handler.stringifyValue(value) for key, value in config.items()}
+        stringlified_config = self.handler.stringlifyValue(config)
 
         # Puts the new stringlified config into config/config.json.
         with open(self.CONFIG_FILE, "w") as c:
