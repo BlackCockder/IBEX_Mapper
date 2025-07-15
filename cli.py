@@ -39,8 +39,8 @@ def run(link: str, show_spinner: bool) -> None:
         thread.start()
 
     mapper = ib.getObjectInstance()
-    mapper.resetConfig()
-    mapper.setDefaultConfig(mapper.generateConfigFromPartialInfo({
+    mapper.resetCurrentDefaultConfigBackToAppDefaultConfig()
+    mapper.setDefaultConfig(mapper.generateValidConfigFromPartialInfo({
         "map_accuracy": 720,
         "allow_negative_values": False
     }))
