@@ -44,6 +44,7 @@ def run(link: str, show_spinner: bool) -> None:
         "map_accuracy": 720,
         "allow_negative_values": False
     }))
+    mapper.map_features.addPoint()
     mapper.generateSingleMapFromGivenFilePath(link)
 
     if show_spinner:
