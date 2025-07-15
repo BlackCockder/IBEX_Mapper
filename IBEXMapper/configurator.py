@@ -23,6 +23,7 @@ class Configurator:
         Returns matrix that is calculated from given vector and angle formula for 3d rotations (rotation around given
         vector for given angle). Numerically it's a 3D numpy array.
         """
+        print("Building centering rotation...")
 
         # Cartesian equivalent of elliptical (0, 0) vector (we assume that the sphere has radius of 1)
         current_vec = np.array([[1., 0., 0.]])
@@ -37,6 +38,8 @@ class Configurator:
         # Uses scipy.spatial.transform.Rotation to directly calculate the rotation matrix.
         # Angle is calculated internally from given vectors.
         rotation, _ = R.align_vectors(current_vec, target_vec)
+
+        print("Centering rotation built")
 
         return rotation.as_matrix()
 
@@ -58,6 +61,9 @@ class Configurator:
         :return:
         Returns the second rotation (meridian rotation) as a matrix. Numerically a 3D numpy array.
         """
+
+        print("Building meridian rotation...")
+
         # Edge case correction, brute force way.
         meridian_vector = self.correctEllipticalVectorsEdgesCases(meridian_vector)
 
@@ -76,7 +82,11 @@ class Configurator:
 
         # Using simple from_euler method of scipy.spatial.transform.Rotations to construct the rotation matrix
         # around X axis and angle beta.
-        return R.from_euler("x", beta).as_matrix()
+        meridian_rotation = R.from_euler("x", beta).as_matrix()
+
+        print("Meridian rotation built")
+
+        return meridian_rotation
 
     def correctEllipticalVectorsEdgesCases(self, vector_to_check: np.ndarray) -> np.ndarray:
 
