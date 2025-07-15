@@ -3,6 +3,7 @@ from .calculator import Calculator
 from .configurator import Configurator
 from .projection import Projection
 from .handler import Handler
+from .map_features import MapFeatures
 import numpy as np
 from copy import deepcopy
 import ast
@@ -16,24 +17,31 @@ class IBEXMapper:
     FEATURES_FILE = os.path.join(FEATURES_DIR, "map_features.json")
 
     def __init__(self, projection: Projection, calculator: Calculator, configurator: Configurator,
-                 handler: Handler) -> None:
+                 handler: Handler, map_features: MapFeatures) -> None:
         self.projection = projection
         self.calculator = calculator
         self.configurator = configurator
         self.handler = handler
+        self.map_features = map_features
 
         os.makedirs(self.CONFIG_DIR, exist_ok=True)
 
         os.makedirs(self.FEATURES_DIR, exist_ok=True)
 
+        os.makedirs("input", exist_ok=True)
+
+        os.makedirs("output", exist_ok=True)
+
         if not os.path.exists(self.CONFIG_FILE):
             self.generateDefaultConfig()
-        if not os.path.exists(self.FEATURES_FILE):
-            with open(self.FEATURES_FILE, "w") as f:
-                json.dump({"points": [], "circles": []}, f, indent=4)
 
-    def generateMapFromLink(self, file_path: str, config=None) -> None:
+        if not os.path.exists(self.FEATURES_FILE):
+            self.generateDefaultMapFeatures()
+
+    def generateSingleMapFromGivenFilePath(self, file_path: str, config=None) -> None:
+
         imported_data = np.loadtxt(file_path, comments='#')
+
         if config is None:
             config = self.formatConfigDatastructures(self.getDefaultConfig())
 
@@ -58,54 +66,15 @@ class IBEXMapper:
         return self.projection.projection(heatmap_data, config["map_accuracy"], file_path, config["rotate"],
                                           config["central_point"], config["meridian_point"])
 
-    def addPoint(self, point_name: str, coordinates: tuple[float, float], color: str) -> None:
-        with open(self.FEATURES_FILE, 'r') as f:
-            data = json.load(f)
+    def generateMapsFromInputFolder(self, config=None) -> None:
+        return
 
-        if any(p['name'] == point_name for p in data.get("points", [])):
-            print(f"Point with name '{point_name}' already exists.")
-            return
+    def generateDefaultConfig(self) -> None:
+        """
+        Method that generates default config and writes it directly to config/config.json.
+        """
 
-        coord_str = f"({coordinates[0]}, {coordinates[1]})"
-
-        data["points"].append({
-            "name": point_name,
-            "coordinates": coord_str,
-            "color": color
-        })
-
-        with open(self.FEATURES_FILE, 'w') as f:
-            json.dump(data, f, indent=4)
-
-    def removePoint(self, point_name: str) -> None:
-        with open(self.FEATURES_FILE, 'r') as f:
-            data = json.load(f)
-
-        points = data.get("points", [])
-
-        for i, point in enumerate(points):
-            if point["name"] == point_name:
-                del points[i]
-                break
-        else:
-            print(f"Point with name '{point_name}' does not exist.")
-            return
-
-        data["points"] = points
-
-        with open(self.FEATURES_FILE, 'w') as f:
-            json.dump(data, f, indent=4)
-
-    def removeAllPoints(self) -> None:
-        with open(self.FEATURES_FILE, 'r') as f:
-            data = json.load(f)
-
-        data["points"] = []
-
-        with open(self.FEATURES_FILE, 'w') as f:
-            json.dump(data, f, indent=4)
-
-    def generateDefaultConfig(self):
+        # App set default config.
         default_config = {
             "map_accuracy": "400",
             "max_l_to_cache": "30",
@@ -114,120 +83,104 @@ class IBEXMapper:
             "meridian_point": "(0, 0)",
             "allow_negative_values": "True",
         }
+
+        # Write it to config/config.json.
         with open(self.CONFIG_FILE, "w") as config:
             json.dump(default_config, config, indent=4)
 
+    def getDefaultConfig(self) -> dict:
+        """
+        Method that fetches config as python dictionary and returns it with parsed data from strings to
+        python datastructures.
+        """
+
+        # Loads the config/config.json file.
+        with open(self.CONFIG_FILE, "r") as config_file:
+            config = json.load(config_file)
+
+        # Uses Handler class method to parse the entire dictionary from {key: str} to {key: correct_datatype}.
+        return self.handler.formatConfigToPythonDatastructures(config)
+
     def setDefaultConfig(self, config: dict) -> None:
-        def convert_value(value):
-            if isinstance(value, (int, bool)):
-                return str(value)
-            elif isinstance(value, np.ndarray):
-                return str(tuple(value.tolist()))
-            else:
-                return str(value)
+        """
+        Method that takes a valid config dictionary, stringlifies it and overrides config/config.json file
+        with it, setting it as new default config.
 
-        serialized_config = {key: convert_value(value) for key, value in config.items()}
+        :param config:
+        Dictionary with chosen config.
+        Note: This dictionary is NOT stringlified.
+        """
+
+        # Stringlifies the config dictionary.
+        stringlified_config = {key: self.handler.stringifyValue(value) for key, value in config.items()}
+
+        # Puts the new stringlified config into config/config.json.
         with open(self.CONFIG_FILE, "w") as c:
-            json.dump(serialized_config, c, indent=4)
+            json.dump(stringlified_config, c, indent=4)
 
-    def generateConfigFromPartialInfo(self, partial_config: dict) -> dict:
-        default_config = self.formatConfigDatastructures(self.getDefaultConfig())
+    def resetCurrentDefaultConfigBackToAppDefaultConfig(self) -> None:
+        """
+        Method that resets the current default config back to app's default config.
+        """
 
+        # Basically overrides the current config/config.json by generating default config again.
+        self.generateDefaultConfig()
+
+    def generateDefaultMapFeatures(self):
+        default_map_features = {
+            "points": [],
+            "circles": [],
+            "texts": [],
+            "heatmap_scale": "",
+            "heatmap_color": ""
+        }
+        with open(self.FEATURES_FILE, "w") as map_features:
+            json.dump(default_map_features, map_features, indent=4)
+
+    def getMapFeatures(self) -> dict:
+        with open(self.FEATURES_FILE, "r") as features_file:
+            map_features = json.load(features_file)
+        return self.handler.formatMapFeaturesToPythonDatastructures(map_features)
+
+    def getPointsList(self):
+        return
+
+    def getCirclesList(self):
+        return
+
+    def getTextsList(self):
+        return
+
+    def getHeatmapScale(self):
+        return
+
+    def getHeatmapColor(self):
+        return
+
+    def generateValidConfigFromPartialInfo(self, partial_config: dict) -> dict:
+        """
+        Method that takes a dictionary that have one or more config keys and turns it into a copy of current
+        default config with overwritten user-given changes.
+        Note: This is the only method that should be used to generate config dictionaries,
+        because it contains assertion of config dictionary.
+
+        :param partial_config:
+        Any dictionary that has at least 1 and at most all matching keys with config.
+
+        :return:
+        Returns a non-stringlified, valid config dictionary.
+        """
+
+        # Gets the default config.
+        default_config = self.getDefaultConfig()
+
+        # Deepcopy the config to make it easy to update later.
         merged_config = deepcopy(default_config)
 
-        self.assertConfig(partial_config)
+        # Asserts if partial_config is valid partial config dictionary.
+        self.handler.assertConfig(partial_config)
 
+        # Applies the changes by updating matching keys.
         merged_config.update(partial_config)
 
         return merged_config
-
-    def getDefaultConfig(self) -> dict:
-        with open(self.CONFIG_FILE, "r") as config_file:
-            return json.load(config_file)
-
-    def resetConfig(self) -> None:
-        self.generateDefaultConfig()
-
-    def formatConfigDatastructures(self, config: dict) -> dict:
-        config_types_schema = {
-            "map_accuracy": int,
-            "max_l_to_cache": int,
-            "rotate": bool,
-            "central_point": np.ndarray,
-            "meridian_point": np.ndarray,
-            "allow_negative_values": bool,
-        }
-
-        formatted_config = {}
-
-        for key, value in config.items():
-            expected_type = config_types_schema.get(key, str)
-            try:
-                formatted_config[key] = self.parseDataToCorrectType(value, expected_type)
-            except Exception as e:
-                raise ValueError(f"Error parsing key '{key}' with value '{value}': {e}")
-
-        return formatted_config
-
-    def parseDataToCorrectType(self, value, expected_type):
-        if expected_type == bool:
-            return str(value).lower() == "true"
-        elif expected_type == int:
-            return int(value)
-        elif expected_type == np.ndarray:
-            tuple_val = ast.literal_eval(value)
-            return np.array(tuple_val)
-        else:
-            return value
-
-    def assertConfig(self, config: dict) -> None:
-        if "map_accuracy" in config:
-            try:
-                map_accuracy = int(config["map_accuracy"])
-                if map_accuracy <= 0:
-                    raise ValueError("Map accuracy must be a positive integer.")
-            except (ValueError, TypeError):
-                raise ValueError("Map accuracy must be a positive integer.")
-
-        if "max_l_to_cache" in config:
-            try:
-                max_l = int(config["max_l_to_cache"])
-                if max_l <= 0:
-                    raise ValueError("Max l must be a positive integer.")
-            except (ValueError, TypeError):
-                raise ValueError("Max l must be a positive integer.")
-
-        if "rotate" in config:
-            rotate = config["rotate"]
-            if isinstance(rotate, str):
-                if rotate.lower() not in ("true", "false"):
-                    raise ValueError("Rotate must be a boolean or a string 'True'/'False'.")
-            elif not isinstance(rotate, bool):
-                raise ValueError("Rotate must be a boolean.")
-        if "allow_negative_values" in config:
-            allow_negative_values = config["allow_negative_values"]
-            if isinstance(allow_negative_values, str):
-                if allow_negative_values.lower() not in ("true", "false"):
-                    raise ValueError("Allow negative values must be a boolean or a string 'True'/'False'.")
-            elif not isinstance(allow_negative_values, bool):
-                raise ValueError("Allow negative values must be a boolean.")
-
-        def validate_geo_point(name, val):
-            try:
-                if isinstance(val, str):
-                    val = ast.literal_eval(val)
-                arr = np.array(val)
-                if arr.ndim != 1 or arr.shape[0] != 2:
-                    raise ValueError(f"{name} must be a 1D array of two values.")
-                lon, lat = arr
-                if not (-180 <= lon <= 180 and -90 <= lat <= 90):
-                    raise ValueError(f"{name} coordinates out of bounds: "
-                                     f"longitude must be in [-180, 180], latitude in [-90, 90].")
-            except Exception:
-                raise ValueError(f"{name} must be a 1D array-like structure of two floats (e.g., (lon, lat)).")
-
-        if "central_point" in config:
-            validate_geo_point("Central point", config["central_point"])
-
-        if "meridian_point" in config:
-            validate_geo_point("Meridian point", config["meridian_point"])
