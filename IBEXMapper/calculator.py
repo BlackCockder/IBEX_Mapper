@@ -31,6 +31,9 @@ class Calculator:
         projection. Refer to the projection function in Projection class to see the ranges of the (x, y) matrix of
         coordinates.
         """
+
+        print("Calculating heatmap data...")
+
         # Assuming that 3rd column is always the column with coefficients
         coefficients = data[:, 2]
 
@@ -39,7 +42,11 @@ class Calculator:
         main_matrix = np.tensordot(coefficients, np.stack(spherical_harmonics_values_matrix), axes=1).T
 
         # Necessary matrix realignment to match mollweide projection
-        return np.roll(np.fliplr(main_matrix), shift=dpi // 2, axis=1)
+        final_matrix = np.roll(np.fliplr(main_matrix), shift=dpi // 2, axis=1)
+
+        print("Heatmap data calculated")
+
+        return final_matrix
                             
     def calculateSphericalHarmonicsDataForSetDPI(self, dpi: int, target_max_l: int) -> list:
         """
@@ -66,10 +73,21 @@ class Calculator:
         # Initializing the final list of spherical harmonics.
         spherical_harmonics_array_on_real_plane = []
 
+        print(f"Calculating spherical harmonics for L: {target_max_l}...")
+
         # Calculating all spherical harmonics up to given l and m sizes.
         # Note: This function also calculates invalid spherical harmonics (like l = 2 and m = 8), but it replaces them
         # with zero after.
         unfiltered_array = spherical_harmonics(target_max_l, target_max_l, colatitude, longitude)
+
+        print("Calculated spherical harmonics")
+
+        print("Filtering spherical harmonics...")
+
+        # Helping variables with showing percentage of calculations done. Agreed step is 5%.
+        total_iterations = sum(2 * l + 1 for l in range(target_max_l + 1))
+        completed_iterations = 0
+        progress_checkpoint = 0
 
         # We need to filter out the invalid spherical harmonics, double for loop does the job.
         for l in range(target_max_l + 1):
@@ -82,6 +100,13 @@ class Calculator:
                             unfiltered_array[l][m],
                             unfiltered_array[l][-m])
                         .real)
+
+                    # Updating progress of filtering
+                    completed_iterations += 1
+                    current_progress = int((completed_iterations / total_iterations) * 100)
+                    if current_progress >= progress_checkpoint + 5:
+                        progress_checkpoint = current_progress - (current_progress % 5)
+                        print(f"Filtering progress: {progress_checkpoint}%")
 
         # Return the list.
         return spherical_harmonics_array_on_real_plane
@@ -124,7 +149,7 @@ class Calculator:
         return x, y, z
 
     def convertCartesianToSpherical(self, x: np.ndarray or float, y: np.ndarray or float, z: np.ndarray or float)\
-            -> tuple[float, float]:
+            -> tuple[np.ndarray, np.ndarray] or tuple[float, float]:
         lat = np.arcsin(z)
         lon = np.arctan2(y, x)
 
@@ -158,6 +183,8 @@ class Calculator:
         Returns all meshes rotated with the given rotation matrix.
         """
 
+        print("Rotating grid...")
+
         # Check shape before rotating to reshape the meshes back into meshes after rotation.
         original_shape = x_mesh.shape
 
@@ -174,6 +201,8 @@ class Calculator:
         rot_x_mesh = rotated_cartesian_coordinates_matrix[:, 0].reshape(original_shape)
         rot_y_mesh = rotated_cartesian_coordinates_matrix[:, 1].reshape(original_shape)
         rot_z_mesh = rotated_cartesian_coordinates_matrix[:, 2].reshape(original_shape)
+
+        print("Grid rotated")
 
         return rot_x_mesh, rot_y_mesh, rot_z_mesh
 
@@ -201,6 +230,8 @@ class Calculator:
         new coordinate system.
         """
 
+        print("Interpolating new heatmap data after rotation...")
+
         # Get the N size.
         dpi = data_to_interpolate.shape[0]
 
@@ -217,6 +248,8 @@ class Calculator:
         # Use the interpolator to interpolate our new grid system with old grid system and its corresponding data to get
         # our new data.
         interpolated_data = interpolator(rotated_vectors).reshape(rotated_lat.shape)
+
+        print("Heatmap data interpolated")
 
         return interpolated_data
 
