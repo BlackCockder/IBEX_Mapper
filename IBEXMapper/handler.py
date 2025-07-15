@@ -2,7 +2,7 @@ import ast
 from pathlib import Path
 import numpy as np
 from .calculator import Calculator
-
+CLI_CONFIG = {}
 
 class Handler:
     """
@@ -81,8 +81,36 @@ class Handler:
     def loadSphericalHarmonicsFromCache(self, file_path: Path) -> np.ndarray:
         return np.load(file_path, allow_pickle=True)
 
-    def stringifyValue(self, value):
-        return
+    def stringlifyValue(self, value: any) -> any:
+        """
+        Recursive method that converts all values in a dictionary or list of dictionaries
+        to their string representations. Supports tuples, booleans, ints and floats.
+
+        :param value:
+        Value to convert. It supports lists of dictionaries even.
+
+        :returns:
+        Returns stringlified value. Can be a dictionary or list.
+        """
+
+        # Brute force all potential values.
+        if isinstance(value, dict):
+            return {k: self.stringlifyValue(v) for k, v in value.items()}
+
+        if isinstance(value, list):
+            return [self.stringlifyValue(v) for v in value]
+
+        if isinstance(value, tuple):
+            return str(value)
+
+        if isinstance(value, bool):
+            return "True" if value else "False"
+
+        if isinstance(value, (int, float)):
+            return str(value)
+
+        return value
+
 
     def formatConfigToPythonDatastructures(self, config: dict) -> dict:
         """
@@ -164,17 +192,59 @@ class Handler:
         return formatted_config
 
     def parseStringToPythonDatastructure(self, value, expected_type):
+        """
+        Method that parsed the validated, stringlified config dictionary values into correct values
+        with correct python datastructures.
+
+        :param value:
+        Value to parse.
+        Note: value is assumed to be validated.
+
+        :param expected_type:
+        Expected type to parse correctly.
+
+        :return:
+        Returns parsed value.
+        """
+
+        # Brute forces all checks.
         if expected_type == bool:
             return str(value).lower() == "true"
-        elif expected_type == int:
+
+        if expected_type == int:
             return int(value)
-        elif expected_type == tuple[float, float]:
-            tuple_val = ast.literal_eval(value)
-            return np.array(tuple_val)
+
+        if expected_type == tuple[float, float]:
+            parsed = ast.literal_eval(value)
+            return tuple(float(x) for x in parsed)
+
         else:
             return value
 
     def assertConfig(self, config: dict) -> None:
+        """
+        Method that asserts every value associated with every key in given, non-valid config dictionary.
+
+        :param config:
+        Config dictionary with keys and values to check.
+        """
+
+        # List of all valid keys to check whether the config dictionary doesn't have any unnecessary keys.
+        valid_keys = {
+            "map_accuracy",
+            "max_l_to_cache",
+            "rotate",
+            "allow_negative_values",
+            "central_point",
+            "meridian_point"
+        }
+
+        # Asserts that given config only contains config dictionary keys.
+        for key in config:
+            if key not in valid_keys:
+                raise TypeError(f"Unknown configuration key: {key}")
+
+        # Asserts that map DPI is a positive integer.
         if "map_accuracy" in config:
             try:
                 map_accuracy = config["map_accuracy"]
@@ -183,6 +253,7 @@ class Handler:
             except (ValueError, TypeError):
                 raise TypeError("Map accuracy must be a positive integer.")
 
+        # Asserts that L is a positive integer.
         if "max_l_to_cache" in config:
             try:
                 max_l = config["max_l_to_cache"]
@@ -191,6 +262,7 @@ class Handler:
             except (ValueError, TypeError):
                 raise ValueError("Max l must be a positive integer.")
 
+        # Asserts that "rotate" is boolean.
         if "rotate" in config:
             rotate = config["rotate"]
             if isinstance(rotate, str):
@@ -199,6 +271,7 @@ class Handler:
             elif not isinstance(rotate, bool):
                 raise ValueError("Rotate must be a boolean.")
 
+        # Asserts that setting about allowing negative values is boolean.
         if "allow_negative_values" in config:
             allow_negative_values = config["allow_negative_values"]
             if isinstance(allow_negative_values, str):
@@ -207,7 +280,9 @@ class Handler:
             elif not isinstance(allow_negative_values, bool):
                 raise ValueError("Allow negative values must be a boolean.")
 
-        def validate_geo_point(name, val):
+        # Helper function for asserting that all geopoints are given as floats of tuples in elliptical coordinates.
+        # Range is from (-180, -90) to (180, 90).
+        def validateGeoPoint(name, val):
             try:
                 if isinstance(val, str):
                     val = ast.literal_eval(val)
@@ -221,11 +296,12 @@ class Handler:
             except Exception:
                 raise ValueError(f"{name} must be a 1D array-like structure of two floats (e.g., (lon, lat)).")
 
+        # Asserts that given points are valid elliptical points. Uses the helper function.
         if "central_point" in config:
-            validate_geo_point("Central point", config["central_point"])
+            validateGeoPoint("Central point", config["central_point"])
 
         if "meridian_point" in config:
-            validate_geo_point("Meridian point", config["meridian_point"])
+            validateGeoPoint("Meridian point", config["meridian_point"])
 
     def assertPoint(self):
         return
