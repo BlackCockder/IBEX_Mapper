@@ -26,6 +26,10 @@ def setDefaultConfig(config: dict) -> None:
     return _mapper.setDefaultConfig(config)
 
 
+def getDefaultConfig() -> dict:
+    return _mapper.getDefaultConfig()
+
+
 def resetConfigToDefaultConfig() -> None:
     return _mapper.resetCurrentDefaultConfigBackToAppDefaultConfig()
 
