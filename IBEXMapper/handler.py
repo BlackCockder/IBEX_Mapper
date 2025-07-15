@@ -36,19 +36,36 @@ class Handler:
         file_name = f"DPI{dpi}L{target_max_l}.npy"
         file_path = cache_dir / file_name
 
+        print("Checking for cached spherical harmonics...")
+
         if self.checkForCachedSphericalHarmonics(file_path):
+            print('Found cached spherical harmonics. Loading...')
+
             # We can cut it directly here because in app.py there is data sanitization that checks whether the inputted
             # file and inputted max_l are properly defined (meaning always max_l >= count_of_rows).
             cached_spherical_harmonics = self.loadSphericalHarmonicsFromCache(file_path)[:data.shape[0]]
 
+            print("Loaded cached spherical harmonics. Initializing heatmap data calculations...")
+
             return self.calculator.calculateMainMatrixFromData(data, cached_spherical_harmonics, dpi)
         else:
+
+            print(f"No cached spherical harmonics for DPI: {dpi} and L: {target_max_l}")
+
+            print(f"Initializing calculation of spherical harmonics for DPI: {dpi} and L: {target_max_l}...")
+
             spherical_harmonics_matrices = self.calculator.calculateSphericalHarmonicsDataForSetDPI(dpi, target_max_l)
+
+            print(f"Caching spherical harmonics for DPI: {dpi} and L: {target_max_l}...")
 
             self.cacheSphericalHarmonics(file_path, spherical_harmonics_matrices)
 
-            # Same assumption here as in line 40.
+            print(f"Cached spherical harmonics for DPI: {dpi} and L: {target_max_l}")
+
+            # Same assumption here as in line 44.
             cut_spherical_harmonics = spherical_harmonics_matrices[:data.shape[0]]
+
+            print("Initializing heatmap data calculation...")
 
             return self.calculator.calculateMainMatrixFromData(data, cut_spherical_harmonics, dpi)
 
