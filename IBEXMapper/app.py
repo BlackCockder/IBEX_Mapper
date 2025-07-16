@@ -35,7 +35,7 @@ class IBEXMapper:
         self.generateDefaultMapFeatures()
 
     def generateSingleMapFromGivenFilePath(self, file_path: str, config=None) -> None:
-
+      
         imported_data = np.loadtxt(file_path, comments='#')
 
         if config is None:
@@ -48,6 +48,10 @@ class IBEXMapper:
         # We need to check if there is a l mismatch in file and config.
         self.checkFor_L_Mismatch(file_max_l, config_max_l)
 
+        config["central_point"] = np.array(config["central_point"])
+        config["meridian_point"] = np.array(config["meridian_point"])
+        print(config["central_point"])
+        print(config["meridian_point"])
         heatmap_data = self.handler.processUserDataset(config["map_accuracy"], config["max_l_to_cache"], imported_data)
         if config["rotate"]:
             lon = np.linspace(np.pi, -np.pi, config["map_accuracy"])
@@ -205,7 +209,6 @@ class IBEXMapper:
         """
         Method tha checks a very dangerous exception, which is file max l being higher than config max l and
         raising ValueError if it actually is higher.
-
         :param file_max_l:
         File detected max l.
 
@@ -214,3 +217,4 @@ class IBEXMapper:
         """
         if file_max_l < config_max_l:
             raise ValueError("Config error: Config max l should be greater or equal to file max l.")
+            
