@@ -14,6 +14,7 @@ class IBEXMapper:
     FEATURES_DIR = "map_features"
     CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
     FEATURES_FILE = os.path.join(FEATURES_DIR, "map_features.json")
+    OUTPUT_DIR = "output"
 
     def __init__(self, projection: Projection, calculator: Calculator, configurator: Configurator,
                  handler: Handler, map_features: MapFeatures) -> None:
@@ -27,22 +28,25 @@ class IBEXMapper:
 
         os.makedirs(self.FEATURES_DIR, exist_ok=True)
 
-        os.makedirs("input", exist_ok=True)
+        os.makedirs(self.OUTPUT_DIR, exist_ok=True)
 
-        os.makedirs("output", exist_ok=True)
+        self.generateDefaultConfig()
 
-        if not os.path.exists(self.CONFIG_FILE):
-            self.generateDefaultConfig()
-
-        if not os.path.exists(self.FEATURES_FILE):
-            self.generateDefaultMapFeatures()
+        self.generateDefaultMapFeatures()
 
     def generateSingleMapFromGivenFilePath(self, file_path: str, config=None) -> None:
 
         imported_data = np.loadtxt(file_path, comments='#')
 
         if config is None:
-            config = self.formatConfigDatastructures(self.getDefaultConfig())
+            config = self.getDefaultConfig()
+
+        config_max_l = config["max_l_to_cache"]
+
+        file_max_l = imported_data[-1, 0]
+
+        # We need to check if there is a l mismatch in file and config.
+        self.checkFor_L_Mismatch(file_max_l, config_max_l)
 
         heatmap_data = self.handler.processUserDataset(config["map_accuracy"], config["max_l_to_cache"], imported_data)
         if config["rotate"]:
@@ -51,7 +55,8 @@ class IBEXMapper:
             lon, lat = np.meshgrid(lon, lat)
             x, y, z = self.calculator.convertSphericalToCartesian(lon, lat)
             central_rotation = self.configurator.buildCenteringRotation(config["central_point"])
-            if config["central_point"][0] == config["meridian_point"][0] and config["central_point"][1] == config["meridian_point"][1]:
+            if (config["central_point"][0] == config["meridian_point"][0]
+                    and config["central_point"][1] == config["meridian_point"][1]):
                 main_rotation = central_rotation.T
             else:
                 meridian_rotation = self.configurator.buildMeridianRotation(config["meridian_point"], central_rotation)
@@ -64,9 +69,6 @@ class IBEXMapper:
             heatmap_data[heatmap_data < 0] = 0
         return self.projection.projection(heatmap_data, config["map_accuracy"], file_path, config["rotate"],
                                           config["central_point"], config["meridian_point"])
-
-    def generateMapsFromInputFolder(self, config=None) -> None:
-        return
 
     def generateDefaultConfig(self) -> None:
         """
@@ -125,36 +127,51 @@ class IBEXMapper:
         # Basically overrides the current config/config.json by generating default config again.
         self.generateDefaultConfig()
 
-    def generateDefaultMapFeatures(self):
+    def generateDefaultMapFeatures(self) -> None:
+        """
+        Generates default map_features.json file by throwing app defaults into it.
+        """
+
+        # Initializing app's default map features.
         default_map_features = {
             "points": [],
             "circles": [],
             "texts": [],
-            "heatmap_scale": "",
-            "heatmap_color": ""
+            # We set (0, 0) tuple as default since assert requires it to be tuple of floats.
+            # Projection will then detect whether the heatmap scale tuple is (0, 0) and if it is, projection will not
+            # apply the scale (it will use dynamic scale generator based on given heatmap data).
+            "heatmap_scale": "(0, 0)",
+            "heatmap_color": "magma"
         }
+
+        # Dumps it into map_features.json
         with open(self.FEATURES_FILE, "w") as map_features:
             json.dump(default_map_features, map_features, indent=4)
 
+    # ----------------------------------------------
+    # Getters for all the map feature related stuff.
+    # ----------------------------------------------
     def getMapFeatures(self) -> dict:
+
         with open(self.FEATURES_FILE, "r") as features_file:
             map_features = json.load(features_file)
+
         return self.handler.formatMapFeaturesToPythonDatastructures(map_features)
 
-    def getPointsList(self):
-        return
+    def getPointsList(self) -> list:
+        return self.getMapFeatures().get("points", [])
 
-    def getCirclesList(self):
-        return
+    def getCirclesList(self) -> list:
+        return self.getMapFeatures().get("circles", [])
 
-    def getTextsList(self):
-        return
+    def getTextsList(self) -> list:
+        return self.getMapFeatures().get("texts", [])
 
-    def getHeatmapScale(self):
-        return
+    def getHeatmapScale(self) -> tuple[float, float]:
+        return self.getMapFeatures().get("heatmap_scale")
 
-    def getHeatmapColor(self):
-        return
+    def getHeatmapColor(self) -> str:
+        return self.getMapFeatures().get("heatmap_color")
 
     def generateValidConfigFromPartialInfo(self, partial_config: dict) -> dict:
         """
@@ -183,3 +200,17 @@ class IBEXMapper:
         merged_config.update(partial_config)
 
         return merged_config
+
+    def checkFor_L_Mismatch(self, file_max_l: int, config_max_l: int) -> None:
+        """
+        Method tha checks a very dangerous exception, which is file max l being higher than config max l and
+        raising ValueError if it actually is higher.
+
+        :param file_max_l:
+        File detected max l.
+
+        :param config_max_l:
+        Max l declared in config.
+        """
+        if file_max_l < config_max_l:
+            raise ValueError("Config error: Config max l should be greater or equal to file max l.")
