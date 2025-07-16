@@ -2,12 +2,23 @@ import json
 import os
 from .handler import Handler
 
+
 class MapFeatures:
+    """
+    Class that gives user methods to add or remove points, circles and texts from generated map
+    as well as defining methods to manipulate map's scale and color.
+    """
+
+    # Initializing map_features folder using os package to ensure OS compatibility.
     FEATURES_DIR = "map_features"
     FEATURES_FILE = os.path.join(FEATURES_DIR, "map_features.json")
     
     def __init__(self, handler: Handler):
         self.handler = handler
+
+    # ------------------------------------
+    # POINTS
+    # ------------------------------------
 
     def addPoint(self,
                  point_name: str,
@@ -15,6 +26,16 @@ class MapFeatures:
                  color: str = "green",
                  show_text: bool = True,
                  point_type: str = "o") -> None:
+        """
+        Method to add a point to a map.
+
+        :param point_name:
+        :param coordinates:
+        :param color:
+        :param show_text:
+        :param point_type:
+        :return:
+        """
 
         self.handler.assertPoint(coordinates, color, show_text, point_type)
         
@@ -37,6 +58,7 @@ class MapFeatures:
             json.dump(data, f, indent=4)
 
     def removePoint(self, point_name: str) -> None:
+
         with open(self.FEATURES_FILE, 'r') as f:
             data = json.load(f)
 
@@ -55,7 +77,6 @@ class MapFeatures:
         with open(self.FEATURES_FILE, 'w') as f:
             json.dump(data, f, indent=4)
 
-
     def removeAllPoints(self) -> None:
         with open(self.FEATURES_FILE, 'r') as f:
             data = json.load(f)
@@ -64,7 +85,10 @@ class MapFeatures:
 
         with open(self.FEATURES_FILE, 'w') as f:
             json.dump(data, f, indent=4)
-# CIRCLES
+
+    # ------------------------------------
+    # CIRCLES
+    # ------------------------------------
 
     def addCircle(self, circle_name: str,
                   coordinates: tuple[float, float],
@@ -119,14 +143,19 @@ class MapFeatures:
         with open(self.FEATURES_FILE, 'w') as f:
             json.dump(data, f, indent=4)
 
-# TEXTS
+    # ------------------------------------
+    # TEXTS
+    # ------------------------------------
 
     def addMapText(self,
                    text_name: str,
                    coordinates: tuple[float, float],
                    color: str,
                    font_size: int = 12,
-                   tilt_angle = 0) -> None:
+                   tilt_angle: float = 0) -> None:
+
+        self.handler.assertText(coordinates, color, font_size, tilt_angle)
+
         with open(self.FEATURES_FILE, 'r') as f:
             data = json.load(f)
 
@@ -175,7 +204,9 @@ class MapFeatures:
         with open(self.FEATURES_FILE, 'w') as f:
             json.dump(data, f, indent=4)
 
-# HEATMAP SCALES
+    # ------------------------------------
+    # HEATMAP SCALES
+    # ------------------------------------
 
     def changeHeatmapScale(self, scale: tuple[float, float]) -> None:
         with open(self.FEATURES_FILE, 'r') as f:
