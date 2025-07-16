@@ -10,7 +10,6 @@ class MapFeatures:
     def __init__(self, handler: Handler):
         self.handler = handler
 
-    # TODO: Select defaults for all methods
     def addPoint(self,
                  point_name: str,
                  coordinates: tuple[float, float],
