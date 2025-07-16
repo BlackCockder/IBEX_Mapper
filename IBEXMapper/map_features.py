@@ -158,7 +158,7 @@ class MapFeatures:
                 del texts[i]
                 break
         else:
-            print(f"Point with name '{texts}' does not exist.")
+            print(f"Point with name '{text_name}' does not exist.")
             return
 
         data["texts"] = texts
