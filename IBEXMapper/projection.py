@@ -97,11 +97,13 @@ class Projection:
         else:
             raise ValueError(f"Invalid colormap type: {cmap_type}")
 
-    def projection(self, z: np.ndarray,
-                   n: int, filename: str,
-                   rotate: bool,
-                   central_coords: np.ndarray,
-                   meridian_coords: np.ndarray) -> None:
+    def projectDataOnMollweideProjection(self, z: np.ndarray,
+                                         n: int,
+                                         filename: str,
+                                         rotate: bool,
+                                         central_coords: np.ndarray,
+                                         meridian_coords: np.ndarray,
+                                         output_path: str = OUTPUT_DIR) -> None:
 
         lon = np.linspace(-np.pi, np.pi, n)
         lat = np.linspace(np.pi/2, -np.pi/2, n)
@@ -242,7 +244,7 @@ class Projection:
             ax.text(-x[0], y[0], label, fontsize=6, ha='left', va='center', color='white', zorder=7)
 
         plt.tight_layout()
-        plt.savefig(os.path.join(self.OUTPUT_DIR, f"file_{filename}__res{n}.pdf"), format='pdf', dpi=n)
+        plt.savefig(os.path.join(output_path, f"file_{filename}__res{n}.pdf"), format='pdf', dpi=n)
         plt.show()
 
     def load_points(self, json_path: str):
