@@ -10,7 +10,15 @@ class MapFeatures:
     def __init__(self, handler: Handler):
         self.handler = handler
 
-    def addPoint(self, point_name: str, coordinates: tuple[float, float], color: str) -> None:
+    # TODO: Select defaults for all methods
+    def addPoint(self,
+                 point_name: str,
+                 coordinates: tuple[float, float],
+                 color: str = "green",
+                 show_text: bool = True,
+                 point_type: str = "o") -> None:
+
+        self.handler.assertPoint(coordinates, color, show_text, point_type)
 
         with open(self.FEATURES_FILE, 'r') as f:
             data = json.load(f)
@@ -19,11 +27,10 @@ class MapFeatures:
             print(f"Point with name '{point_name}' already exists.")
             return
 
-        coord_str = f"({coordinates[0]}, {coordinates[1]})"
 
         data["points"].append({
             "name": point_name,
-            "coordinates": coord_str,
+            "coordinates": self.handler.stringlifyValue(coordinates),
             "color": color
         })
 
@@ -58,7 +65,13 @@ class MapFeatures:
         with open(self.FEATURES_FILE, 'w') as f:
             json.dump(data, f, indent=4)
 
-    def addCircle(self, circle_name: str, center_of_circle_vector: tuple[float, float], alpha: float, color: str) -> None:
+    def addCircle(self,
+                  circle_name: str,
+                  center_of_circle_vector: tuple[float, float],
+                  alpha: float = 90,
+                  color: str = "green",
+                  linestyle: str = "-") -> None:
+
         with open(self.FEATURES_FILE, 'r') as f:
             data = json.load(f)
 
