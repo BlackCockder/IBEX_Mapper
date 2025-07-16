@@ -11,7 +11,9 @@ import os
 
 
 class Projection:
+    CONFIG_DIR = "config"
     FEATURES_DIR = "map_features"
+    CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
     FEATURES_FILE = os.path.join(FEATURES_DIR, "map_features.json")
     OUTPUT_DIR = "output"
 
@@ -120,7 +122,7 @@ class Projection:
         if central_coords[0] == meridian_coords[0] and central_coords[1] == meridian_coords[1]:
             FinalRotation = Rotation1
         else:
-            FinalRotation = self.calculator.combineRotation(Rotation1, Rotation2)
+            FinalRotation = Rotation2 @ Rotation1
 
         rotated_central_vec = Rotation1 @ central_vector_point
         rotated_meridian_vec = FinalRotation @ meridian_vector_point
@@ -179,20 +181,6 @@ class Projection:
             self.draw_graticule(ax, FinalRotation)
         else:
             self.draw_graticule(ax, np.eye(3))
-
-        # watermark
-        logo = mpimg.imread("public\logo_ibex.png")
-        zoom = 0.3
-        imagebox = OffsetImage(logo, zoom=zoom)
-        ab = AnnotationBbox(
-            imagebox,
-            xy=(0.97, 0.04),
-            xycoords="figure fraction",
-            frameon=False,
-            box_alignment=(1, 0)
-        )
-        ab.set_zorder(10)  # draw on top of everything else
-        ax.add_artist(ab)
 
         at = AnchoredText(
             "2025 IBEX Mapper",  # text to display
