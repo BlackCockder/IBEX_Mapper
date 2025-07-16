@@ -6,14 +6,14 @@ import os
 
 
 class Handler:
-    CONFIG_DIR = "config"
-    FEATURES_DIR = "map_features"
-    CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
-    FEATURES_FILE = os.path.join(FEATURES_DIR, "map_features.json")
     """
     This class is responsible for using logic from calculator to build the final heatmap matrix
     and for sanitizing user given data.
     """
+    # Initializing map_features folder using os package to ensure OS compatibility.
+    CONFIG_DIR = "config"
+    CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
+
     def __init__(self, calculator: Calculator):
         self.calculator = calculator
 
@@ -485,11 +485,11 @@ class Handler:
         if not isinstance(heatmap_scale, tuple) or len(heatmap_scale) != 2:
             raise TypeError("heatmap_scale must be a tuple of two numeric values.")
 
-        if not all(isinstance(v, (float, int)) for v in (x, y)):
-            raise TypeError("heatmap_scale must contain numeric (float or int) values.")
-
         # Gets the numbers to check if the x < y.
         x, y = heatmap_scale
+
+        if not all(isinstance(v, (float, int)) for v in (x, y)):
+            raise TypeError("heatmap_scale must contain numeric (float or int) values.")
 
         # Prints orange warning if (0, 0) is used.
         if (x, y) == (0, 0):
