@@ -11,7 +11,9 @@ import os
 
 
 class Projection:
+    CONFIG_DIR = "config"
     FEATURES_DIR = "map_features"
+    CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
     FEATURES_FILE = os.path.join(FEATURES_DIR, "map_features.json")
     OUTPUT_DIR = "output"
 
