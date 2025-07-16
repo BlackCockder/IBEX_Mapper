@@ -2,9 +2,14 @@ import ast
 from pathlib import Path
 import numpy as np
 from .calculator import Calculator
-CLI_CONFIG = {}
+import os
+
 
 class Handler:
+    CONFIG_DIR = "config"
+    FEATURES_DIR = "map_features"
+    CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
+    FEATURES_FILE = os.path.join(FEATURES_DIR, "map_features.json")
     """
     This class is responsible for using logic from calculator to build the final heatmap matrix
     and for sanitizing user given data.
@@ -64,7 +69,7 @@ class Handler:
 
             print(f"Cached spherical harmonics for DPI: {dpi} and L: {target_max_l}")
 
-            # Same assumption here as in line 44.
+            # Same assumption here as in line 51.
             cut_spherical_harmonics = spherical_harmonics_matrices[:data.shape[0]]
 
             print("Initializing heatmap data calculation...")
@@ -81,7 +86,7 @@ class Handler:
     def loadSphericalHarmonicsFromCache(self, file_path: Path) -> np.ndarray:
         return np.load(file_path, allow_pickle=True)
 
-    def stringlifyValue(self, value: any) -> any:
+    def stringlifyValue(self, value: any) -> str or dict[any: str] or list[str]:
         """
         Recursive method that converts all values in a dictionary or list of dictionaries
         to their string representations. Supports tuples, booleans, ints and floats.
@@ -110,7 +115,6 @@ class Handler:
             return str(value)
 
         return value
-
 
     def formatConfigToPythonDatastructures(self, config: dict) -> dict:
         """
@@ -146,7 +150,7 @@ class Handler:
             try:
 
                 # Use parseStringToPythonDatastructure to parse data.
-                formatted_config[key] = self.parseStringToPythonDatastructure(value, expected_type)
+                formatted_config[key] = self.parseStringsToPythonDatastructures(value, expected_type)
 
             except Exception as e:
 
@@ -155,43 +159,82 @@ class Handler:
 
         return formatted_config
 
-    def formatMapFeaturesToPythonDatastructures(self, config: dict) -> dict:
-        config_types_schema = {
-            "points": [
-                {
-                    "name": str,
-                    "coordinates": tuple[float, float],
-                    "color": str,
-                    "do_show_text": bool,
-                    "point_type": str
-                }
-            ],
-            "circles": [
-                {
-                    "name": str,
-                    "center_coordinates": tuple[float, float],
-                    "alpha": float,
-                    "color": str
-                }
-            ],
-            "rotate": bool,
-            "central_point": tuple[float, float],
-            "meridian_point": tuple[float, float],
-            "allow_negative_values": bool,
+    def formatMapFeaturesToPythonDatastructures(self, features: dict) -> dict:
+        """
+        Formats the stringified map features JSON into proper Python datatypes.
+
+        :param features: Map features dictionary.
+        :return: Parsed map features dictionary.
+        """
+
+        # Defines feature schema.
+        # Note: all "str" values are not defined here, since no conversion is needed for them.
+        feature_type_schemas = {
+            "points": {
+                "coordinates": tuple[float, float],
+                "show_text": bool,
+            },
+            "circles": {
+                "coordinates": tuple[float, float],
+                "alpha": int,
+            },
+            "texts": {
+                "coordinates": tuple[float, float],
+                "font_size": int,
+                "tilt_angle": int,
+            },
+            "heatmap_scale": tuple[float, float],
         }
 
-        formatted_config = {}
+        # Initializing empty map features dictionary.
+        formatted_map_features = {}
 
-        for key, value in config.items():
-            expected_type = config_types_schema.get(key, str)
-            try:
-                formatted_config[key] = self.parseConfigDataToCorrectType(value, expected_type)
-            except Exception as e:
-                raise ValueError(f"Error parsing key '{key}' with value '{value}': {e}")
+        # Processing the non-array features first.
+        for key, value in features.items():
+            if key not in ["points", "circles", "texts"]:
 
-        return formatted_config
+                # Get the expected type.
+                expected_type = feature_type_schemas.get(key, str)
+                try:
 
-    def parseStringToPythonDatastructure(self, value, expected_type):
+                    # Again, uses parseStringsToPythonDatastructures method to parse the value.
+                    formatted_map_features[key] = self.parseStringsToPythonDatastructures(value, expected_type)
+
+                except Exception as e:
+
+                    # Also again, this shouldn't fire once if parser is written correctly.
+                    raise ValueError(f"Error parsing root key '{key}' with value '{value}': {e}")
+
+        # Now we process all the arrays in the map features dictionary.
+        for group_key in ["points", "circles", "texts"]:
+
+            # Getting the array to process first.
+            group_items = features.get(group_key, [])
+
+            # Getting all expected types.
+            schema = feature_type_schemas.get(group_key, {})
+
+            # Initializing parsed array.
+            parsed_group = []
+
+            # Now we process them one by one, the same logic as with non-array keys.
+            for item in group_items:
+                parsed_item = {}
+                for item_key, item_value in item.items():
+                    expected_type = schema.get(item_key, str)
+                    try:
+                        parsed_item[item_key] = self.parseStringsToPythonDatastructures(item_value, expected_type)
+                    except Exception as e:
+                        raise ValueError(
+                            f"Error parsing '{group_key}' item key '{item_key}' with value '{item_value}': {e}"
+                        )
+                parsed_group.append(parsed_item)
+
+            formatted_map_features[group_key] = parsed_group
+
+        return formatted_map_features
+
+    def parseStringsToPythonDatastructures(self, value, expected_type) -> any:
         """
         Method that parsed the validated, stringlified config dictionary values into correct values
         with correct python datastructures.
@@ -213,6 +256,9 @@ class Handler:
 
         if expected_type == int:
             return int(value)
+
+        if expected_type == float:
+            return float(value)
 
         if expected_type == tuple[float, float]:
             parsed = ast.literal_eval(value)
@@ -303,17 +349,115 @@ class Handler:
         if "meridian_point" in config:
             validateGeoPoint("Meridian point", config["meridian_point"])
 
-    def assertPoint(self):
-        return
+    def assertPoint(self, coordinates: any, color: any, show_text: any, point_type: any) -> None:
+        # Define valid values (these should ideally be class-level constants or passed externally)
+        colors = []  # Fill this with valid color strings, e.g., ["red", "blue", "green"]
+        point_types = []  # Fill this with valid point type strings, e.g., ["x", "o", "triangle"]
 
-    def assertCircle(self):
-        return
+        # 1. Assert coordinates are valid geographic (lon, lat)
+        self.assertCoordinates(coordinates, "Point coordinates")
 
-    def assertText(self):
-        return
+        # 2. Color must be in predefined list
+        if not isinstance(color, str):
+            raise TypeError("color must be a string.")
+        if color not in colors:
+            raise ValueError(f"Invalid color '{color}'. Must be one of: {colors}")
 
-    def assertHeatmapScale(self):
-        return
+        # 3. show_text must be boolean
+        if not isinstance(show_text, bool):
+            raise TypeError("show_text must be a boolean.")
 
-    def assertHeatmapColor(self):
-        return
+        # 4. point_type must be in predefined list
+        if not isinstance(point_type, str):
+            raise TypeError("point_type must be a string.")
+        if point_type not in point_types:
+            raise ValueError(f"Invalid point_type '{point_type}'. Must be one of: {point_types}")
+
+    def assertCircle(self, coordinates: any, alpha: any, color: any, linestyle: any) -> None:
+        # Valid options (populate these as needed)
+        colors = []       # Example: ["red", "blue", "green"]
+        linestyles = []   # Example: ["solid", "dashed", "dotted"]
+
+        # 1. Coordinates must be valid (lon, lat)
+        self.assertCoordinates(coordinates, "Circle coordinates")
+
+        # 2. Alpha must be a float in range (0, 360)
+        if not isinstance(alpha, (float, int)):
+            raise TypeError("alpha must be a float or int.")
+        if not (0 < float(alpha) < 360):
+            raise ValueError("alpha must be in the range (0, 360).")
+
+        # 3. Color must be in the list
+        if not isinstance(color, str):
+            raise TypeError("color must be a string.")
+        if color not in colors:
+            raise ValueError(f"Invalid color '{color}'. Must be one of: {colors}")
+
+        # 4. Linestyle must be in the list
+        if not isinstance(linestyle, str):
+            raise TypeError("linestyle must be a string.")
+        if linestyle not in linestyles:
+            raise ValueError(f"Invalid linestyle '{linestyle}'. Must be one of: {linestyles}")
+
+    def assertText(self, coordinates: any, color: any, font_size: any, tilt_angle: any) -> None:
+        # Valid options (define these as needed)
+        colors = []           # Example: ["red", "blue", "green"]
+        font_size_min = 8     # Minimum allowed font size
+        font_size_max = 72    # Maximum allowed font size
+
+        # 1. Coordinates must be valid (lon, lat)
+        self.assertCoordinates(coordinates, "Text coordinates")
+
+        # 2. Color must be in the list
+        if not isinstance(color, str):
+            raise TypeError("color must be a string.")
+        if color not in colors:
+            raise ValueError(f"Invalid color '{color}'. Must be one of: {colors}")
+
+        # 3. Font size must be a positive integer within defined range
+        if not isinstance(font_size, int):
+            raise TypeError("font_size must be an integer.")
+        if not (font_size_min <= font_size <= font_size_max):
+            raise ValueError(f"font_size must be between {font_size_min} and {font_size_max}.")
+
+        # 4. Tilt angle must be a float (or int) in [0, 360]
+        if not isinstance(tilt_angle, (float, int)):
+            raise TypeError("tilt_angle must be a float or int.")
+        if not (0 <= float(tilt_angle) <= 360):
+            raise ValueError("tilt_angle must be in the range [0, 360].")
+
+
+    def assertHeatmapScale(self, heatmap_scale: any) -> None:
+        if not isinstance(heatmap_scale, tuple) or len(heatmap_scale) != 2:
+            raise TypeError("heatmap_scale must be a tuple of two numeric values.")
+
+        x, y = heatmap_scale
+
+        if not all(isinstance(v, (float, int)) for v in (x, y)):
+            raise TypeError("heatmap_scale must contain numeric (float or int) values.")
+
+        if (x, y) == (0, 0):
+            print("\033[38;5;208mWarning: Custom heatmap scale given is (0, 0). Projector therefore will use automatic scale selection.\033[0m")
+            return
+
+        if x >= y:
+            raise ValueError("In heatmap_scale (x, y), x must be less than y and they must not be equal.")
+
+    def assertHeatmapColor(self, heatmap_color: any) -> None:
+        # Define the allowed heatmap color palette
+        colors = []  # Example: ["viridis", "plasma", "magma", "inferno"]
+
+        if not isinstance(heatmap_color, str):
+            raise TypeError("heatmap_color must be a string.")
+
+        if heatmap_color not in colors:
+            raise ValueError(f"Invalid heatmap_color '{heatmap_color}'. Must be one of: {colors}")
+
+    def assertCoordinates(self, coordinates: any, name: str) -> None:
+        if not isinstance(coordinates, tuple) or len(coordinates) != 2:
+            raise TypeError(f"{name} must be a tuple of two numeric values.")
+        lon, lat = coordinates
+        if not all(isinstance(x, (float, int)) for x in (lon, lat)):
+            raise TypeError(f"{name} must contain numeric (float or int) values.")
+        if not (-180 <= lon <= 180 and -90 <= lat <= 90):
+            raise ValueError(f"{name} out of bounds: longitude must be [-180, 180], latitude must be [-90, 90].")
