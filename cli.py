@@ -29,6 +29,7 @@ app = typer.Typer(add_completion=False, help="IBEXMapper CLI")
 mapper = ibex.getObjectInstance()
 CONFIG_FILE = Path(mapper.CONFIG_FILE)
 FEATURES_FILE = Path(mapper.FEATURES_FILE)
+SESSION_CFG: dict | None = None
 
 def _spinner(msg: str, done: threading.Event, interval: float = 0.1) -> None:
     for ch in itertools.cycle("|/-\\"):
@@ -52,9 +53,7 @@ def _parse_point(txt: str) -> Tuple[float, float]:
         raise typer.BadParameter("Expected '(lon, lat)'.") from exc
 
 
-def _current_cfg() -> Dict[str, Any]:
-    if not CONFIG_FILE.exists():
-        mapper.resetConfig()
+def _current_cfg() -> dict:
     return ibex.getDefaultConfig()
 
 
@@ -200,8 +199,18 @@ def _menu_loop() -> None:
             if choice == 1: # generate map
                 # generateMapFromLink i InputFolder / totalnie to zmiany
                 p = typer.prompt("Path to data file", prompt_suffix=" -> ")
-                cfg_on = typer.confirm("Use saved configuration?", default=True)
-                cmd_generate(Path(p), cfg_on)
+                use_saved = typer.confirm("Use saved configuration?", default=True)
+                cfg = SESSION_CFG if use_saved and SESSION_CFG is not None else ibex.getDefaultConfig()
+                done = threading.Event()
+                t = threading.Thread(target=_spinner, args=("GENERATING MAP", done), daemon=True)
+                t.start()
+                try:
+                    ibex.generateMapFromLink(p, cfg)
+                finally:
+                    done.set()
+                    t.join()
+                console.print("[bold green]Map generated.[/bold green]")
+                # cmd_generate(Path(p), use_saved)
             elif choice == 2: # add point
                 # git
                 n, lon, lat, col = _prompt_point()
@@ -213,7 +222,7 @@ def _menu_loop() -> None:
                 ibex.removePoint(n)
                 console.print(f"[yellow]Removed '{n}'.[/yellow]")
             elif choice == 4: # list points
-                # nie tykac
+                # nie dotykac
                 cmd_list_points()
             elif choice == 5: # remove all points
                 # git
@@ -230,7 +239,7 @@ def _menu_loop() -> None:
                 ibex.removeCircle(n)
                 console.print(f"[yellow]Removed circle '{n}'.[/yellow]")
             elif choice == 8: # list circles
-                # nie tykac
+                # nie dotykac
                 circles = ibex.listCircles()
                 if not circles:
                     console.print("[italic]No circles stored.[/italic]")
@@ -250,7 +259,7 @@ def _menu_loop() -> None:
                     ibex.removeAllCircles()
                 console.print("[yellow]All circles removed.[/yellow]")
             elif choice == 10: # add text
-                # nie tykac
+                # nie dotykac
                 n = typer.prompt("Text name")
                 c = typer.prompt("Coordinates (lon, lat)")
                 col = typer.prompt("Color", default="black")
@@ -314,7 +323,7 @@ def _menu_loop() -> None:
                 if an.lower() in {"true", "false"}:
                     upd["allow_negative_values"] = an.lower() == "true"
                 if upd:
-                    # _save_cfg(ibex.createNewConfig(upd))
+                    SESSION_CFG = ibex.createNewConfig(upd)
                     console.print("[green]Config updated until exiting the program.[/green]")
                 else:
                     console.print("[italic]Nothing changed.[/italic]")
@@ -323,7 +332,7 @@ def _menu_loop() -> None:
                     ibex.resetConfigToDefaultConfig()
                 console.print("[yellow]Configuration reset.[/yellow]")
             elif choice == 20: # set selected configuration as default
-                pass
+                ibex.setDefaultConfig() # upd
             elif choice == 21: # exit
                 console.print("[cyan]Goodbye[/cyan]")
                 break
@@ -336,7 +345,7 @@ def _menu_loop() -> None:
             install(show_locals=True)
             raise
         typer.echo()
-        typer.pause("Press any key to continue…")
+        typer.pause("Press any key to continue...")
 
 
 
