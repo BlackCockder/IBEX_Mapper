@@ -2,23 +2,29 @@ import json
 import os
 from .handler import Handler
 
-
 class MapFeatures:
     FEATURES_DIR = "map_features"
     FEATURES_FILE = os.path.join(FEATURES_DIR, "map_features.json")
+    
     def __init__(self, handler: Handler):
         self.handler = handler
 
-# POINTS
+    def addPoint(self,
+                 point_name: str,
+                 coordinates: tuple[float, float],
+                 color: str = "green",
+                 show_text: bool = True,
+                 point_type: str = "o") -> None:
 
-    def addPoint(self, point_name: str, coordinates: tuple[float, float], color: str, show_text: bool, point_type: str) -> None:
+        self.handler.assertPoint(coordinates, color, show_text, point_type)
+        
         with open(self.FEATURES_FILE, 'r') as f:
             data = json.load(f)
 
         if any(p['name'] == point_name for p in data.get("points", [])):
             print(f"Point with name '{point_name}' already exists.")
             return
-
+          
         data["points"].append({
             "name": point_name,
             "coordinates": self.handler.stringlifyValue(coordinates),
@@ -49,7 +55,8 @@ class MapFeatures:
         with open(self.FEATURES_FILE, 'w') as f:
             json.dump(data, f, indent=4)
 
-    def removeAllPoints(self):
+
+    def removeAllPoints(self) -> None:
         with open(self.FEATURES_FILE, 'r') as f:
             data = json.load(f)
 
@@ -57,7 +64,6 @@ class MapFeatures:
 
         with open(self.FEATURES_FILE, 'w') as f:
             json.dump(data, f, indent=4)
-
 # CIRCLES
 
     def addCircle(self, circle_name: str,
@@ -84,7 +90,7 @@ class MapFeatures:
 
         with open(self.FEATURES_FILE, 'w') as f:
             json.dump(data, f, indent=4)
-
+            
     def removeCircle(self, circle_name: str) -> None:
         with open(self.FEATURES_FILE, 'r') as f:
             data = json.load(f)
@@ -206,5 +212,3 @@ class MapFeatures:
 
         with open(self.FEATURES_FILE, 'w') as f:
             json.dump(data, f, indent=4)
-
-
