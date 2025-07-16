@@ -34,7 +34,7 @@ class IBEXMapper:
 
         self.generateDefaultMapFeatures()
 
-    def generateSingleMapFromGivenFilePath(self, file_path: str, config=None) -> None:
+    def generateSingleMapFromGivenFilePath(self, file_path: str, output_path: str, config=None) -> None:
       
         imported_data = np.loadtxt(file_path, comments='#')
 
@@ -45,7 +45,7 @@ class IBEXMapper:
 
         file_max_l = imported_data[-1, 0]
 
-        # We need to check if there is a l mismatch in file and config.
+        # We need to check if there is l mismatch in file and config.
         self.checkFor_L_Mismatch(file_max_l, config_max_l)
 
         config["central_point"] = np.array(config["central_point"])
@@ -71,8 +71,9 @@ class IBEXMapper:
 
         if not config["allow_negative_values"]:
             heatmap_data[heatmap_data < 0] = 0
-        return self.projection.projection(heatmap_data, config["map_accuracy"], file_path, config["rotate"],
-                                          config["central_point"], config["meridian_point"])
+
+        return self.projection.projectDataOnMollweideProjection(heatmap_data, config["map_accuracy"], file_path, output_path, config["rotate"],
+                                                                config["central_point"], config["meridian_point"])
 
     def generateDefaultConfig(self) -> None:
         """
