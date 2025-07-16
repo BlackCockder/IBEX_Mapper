@@ -158,33 +158,33 @@ def cmd_config_reset(yes: bool = typer.Option(False, "--yes", "-y")):
 _MENU = """  
 [bold green]IBEX MAPPER[/bold green]  
 
- 1 Generate map  
- 2 Add point  
- 3 Remove point  
- 4 List points  
- 5 Remove all points
-6* Add circle
-7* Remove circle
-8* List circles
-9* Remove all circles
-10* Add text
-11* Remove text
-12* List all text
-13* Remove all texts
-14* Change heatmap color
-15** Change heatmap scale
-16** Clear heatmap scale
-17 (15) (6) Show configuration  
-18 (16) (7) Set configuration fields  
-19 (17) (8) Reset configuration
-20* Set selected configuration as default  
-21 (20) (18) (9) Exit  
+1 Generate map  
+2 Add point  
+3 Remove point  
+4 List points  
+5 Remove all points
+6 Add circle # not working
+7 Remove circle # not working
+8 List circles # not working
+9 Remove all circles # not working 
+10 Add text # not working
+11 Remove text # not working
+12 List all text # not working
+13 Remove all texts # not working
+14 Change heatmap color # not working
+15 Change heatmap scale # not working
+16 Clear heatmap scale # not working
+17 Show configuration  
+18 Set configuration fields  
+19 Reset configuration
+20 Set selected configuration as default  
+21 Exit  
 """
 
 def _prompt_point() -> Tuple[str, float, float, str]:
     n = typer.prompt("Point name")
     c = typer.prompt("Coordinates (lon, lat)")
-    col = typer.prompt("Color", default="black")
+    col = typer.prompt("Color", default="green")
     lon, lat = _parse_point(c)
     return n, lon, lat, col
 
@@ -222,7 +222,7 @@ def _menu_loop() -> None:
                 ibex.removePoint(n)
                 console.print(f"[yellow]Removed '{n}'.[/yellow]")
             elif choice == 4: # list points
-                # nie dotykac
+                # TODO: dokonczyc
                 cmd_list_points()
             elif choice == 5: # remove all points
                 # git
@@ -230,7 +230,7 @@ def _menu_loop() -> None:
                     ibex.removeAllPoints()
                 console.print("[yellow]All points removed.[/yellow]")
             elif choice == 6: # add circle
-                # prawie git
+                # TODO: dokonczyc
                 n, lon, lat, col = _prompt_point()
                 ibex.addCircle(n, (lon, lat), col)
                 console.print(f"[green]Added circle '{n}'.[/green]")
@@ -239,7 +239,7 @@ def _menu_loop() -> None:
                 ibex.removeCircle(n)
                 console.print(f"[yellow]Removed circle '{n}'.[/yellow]")
             elif choice == 8: # list circles
-                # nie dotykac
+                # TODO: dokonczyc
                 circles = ibex.listCircles()
                 if not circles:
                     console.print("[italic]No circles stored.[/italic]")
@@ -259,7 +259,7 @@ def _menu_loop() -> None:
                     ibex.removeAllCircles()
                 console.print("[yellow]All circles removed.[/yellow]")
             elif choice == 10: # add text
-                # nie dotykac
+                # TODO: dokonczyc
                 n = typer.prompt("Text name")
                 c = typer.prompt("Coordinates (lon, lat)")
                 col = typer.prompt("Color", default="black")
@@ -304,7 +304,7 @@ def _menu_loop() -> None:
             elif choice == 16: # clear heatmap scale
                 ibex.resetHeatmapScaleToDefault()
             elif choice == 17: # show configuration
-                # nie tykac
+                # TODO: dokonczyc
                 cmd_config_show()
             elif choice == 18: # set configuration fields
                 console.print("Leave blank to keep value.")
@@ -314,16 +314,23 @@ def _menu_loop() -> None:
                 cp = typer.prompt("central_point", default="")
                 mp = typer.prompt("meridian_point", default="")
                 an = typer.prompt("allow_negative_values (true/false)", default="")
-                upd: dict = {}
-                if ma: upd["map_accuracy"] = int(ma)
-                if ml: upd["max_l_to_cache"] = int(ml)
-                if rot.lower() in {"true", "false"}: upd["rotate"] = rot.lower() == "true"
-                if cp: upd["central_point"] = cp
-                if mp: upd["meridian_point"] = mp
-                if an.lower() in {"true", "false"}:
-                    upd["allow_negative_values"] = an.lower() == "true"
+                upd: dict = {"map_accuracy": ma,
+                             "max_l_to_cache": ml,
+                             "rotate": rot,
+                             "central_point": cp,
+                             "meridian_point": mp,
+                             "allow_negative_values": an
+                             }
+                formatted_cfg = mapper.handler.formatConfigToPythonDatastructures(upd)
+                # if ma: upd["map_accuracy"] = int(ma)
+                # if ml: upd["max_l_to_cache"] = int(ml)
+                # if rot.lower() in {"true", "false"}: upd["rotate"] = rot.lower() == "true"
+                # if cp: upd["central_point"] = cp
+                # if mp: upd["meridian_point"] = mp
+                # if an.lower() in {"true", "false"}:
+                formatted_cfg["allow_negative_values"] = an.lower() == "true"
                 if upd:
-                    SESSION_CFG = ibex.createNewConfig(upd)
+                    SESSION_CFG = ibex.createNewConfig(formatted_cfg)
                     console.print("[green]Config updated until exiting the program.[/green]")
                 else:
                     console.print("[italic]Nothing changed.[/italic]")

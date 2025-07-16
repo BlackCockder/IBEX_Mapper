@@ -10,7 +10,9 @@ import os
 
 
 class Projection:
+    CONFIG_DIR = "config"
     FEATURES_DIR = "map_features"
+    CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
     FEATURES_FILE = os.path.join(FEATURES_DIR, "map_features.json")
     OUTPUT_DIR = "output"
 
@@ -73,9 +75,15 @@ class Projection:
             ax.plot(-lon_r, lat_r, lw=.4, color='grey')
 
     def loadColorMap(self, cmap_type: str):
-        cmaps = {"batlow": r"public\batlow.txt",
-                 "batlowK": r"public\batlowK.txt",
-                 "batlowW": r"public\batlowW.txt",
+        """Loads a colormap from a file and returns it as a matplotlib colormap object."""
+
+        batlow_path = os.path.join("public", "batlow.txt")
+        batlowk_path = os.path.join("public", "batlowK.txt")
+        batloww_path = os.path.join("public", "batlowW.txt")
+
+        cmaps = {"batlow": batlow_path,
+                 "batlowK": batlowk_path,
+                 "batlowW": batloww_path,
                  "viridis": "viridis",
                  "magma": "magma"
                  }
