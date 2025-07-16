@@ -7,11 +7,10 @@ from .app import IBEXMapper as _IBEXMapperClass
 from .map_features import MapFeatures
 
 _calculator = Calculator()
-_map_features = MapFeatures()
+_handler = Handler(_calculator)
+_map_features = MapFeatures(_handler)
 _configurator = Configurator(_calculator)
 _projection = Projection(_calculator, _configurator)
-_handler = Handler(_calculator)
-_map_features = MapFeatures()
 _mapper = _IBEXMapperClass(_projection, _calculator, _configurator, _handler, _map_features)
 
 def getObjectInstance() -> _IBEXMapperClass:
