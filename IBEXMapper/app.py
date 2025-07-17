@@ -34,8 +34,8 @@ class IBEXMapper:
 
         self.generateDefaultMapFeatures()
 
-    def generateSingleMapFromGivenFilePath(self, file_path: str, config=None) -> None:
-      
+    def generateSingleMapFromGivenFilePath(self, file_path: str, output_path: str or None, config=None) -> None:
+
         imported_data = np.loadtxt(file_path, comments='#')
 
         if config is None:
@@ -45,8 +45,8 @@ class IBEXMapper:
 
         file_max_l = imported_data[-1, 0]
 
-        # We need to check if there is a l mismatch in file and config.
-        self.checkFor_L_Mismatch(file_max_l, config_max_l)
+        # We need to check if there is l mismatch in file and config.
+        self.checkFor_L_Mismatch(int(file_max_l), config_max_l)
 
         config["central_point"] = np.array(config["central_point"])
         config["meridian_point"] = np.array(config["meridian_point"])
@@ -71,12 +71,14 @@ class IBEXMapper:
 
         if not config["allow_negative_values"]:
             heatmap_data[heatmap_data < 0] = 0
-        return self.projection.projection(heatmap_data, config["map_accuracy"], file_path, config["rotate"],
-                                          config["central_point"], config["meridian_point"])
+
+        return self.projection.projectDataOnMollweideProjection(heatmap_data, config["map_accuracy"], file_path,
+                                                                config["rotate"], config["central_point"],
+                                                                config["meridian_point"], output_path)
 
     def generateDefaultConfig(self) -> None:
         """
-        Method that generates default config and writes it directly to config/config.json.
+        Method that generates the default config and writes it directly to config/config.json.
         """
 
         # App set default config.
@@ -95,7 +97,7 @@ class IBEXMapper:
 
     def getDefaultConfig(self) -> dict:
         """
-        Method that fetches config from config/config.json file as python dictionary
+        Method that fetches config from a config/config.json file as a python dictionary
         and returns it with parsed data from strings to python datastructures.
         """
 
@@ -108,32 +110,32 @@ class IBEXMapper:
 
     def setDefaultConfig(self, config: dict) -> None:
         """
-        Method that takes a valid config dictionary, stringlifies it and overrides config/config.json file
-        with it, setting it as new default config.
+        Method that takes a valid config dictionary, stringifies it and overrides the config / config.json file
+        with it, setting it as the new default config.
 
         :param config:
         Dictionary with chosen config.
-        Note: This dictionary is NOT stringlified and assumed valid.
+        Note: This dictionary is NOT stringified and assumed valid.
         """
 
-        # Stringlifies the config dictionary.
-        stringlified_config = self.handler.stringlifyValue(config)
+        # Stringifies the config dictionary.
+        stringified_config = self.handler.stringifyValue(config)
 
-        # Puts the new stringlified config into config/config.json.
+        # Puts the new stringified config into config/config.json.
         with open(self.CONFIG_FILE, "w") as c:
-            json.dump(stringlified_config, c, indent=4)
+            json.dump(stringified_config, c, indent=4)
 
     def resetCurrentDefaultConfigBackToAppDefaultConfig(self) -> None:
         """
-        Method that resets the current default config back to app's default config.
+        Method that resets the current default config back to the app's default config.
         """
 
-        # Basically overrides the current config/config.json by generating default config again.
+        # Basically overrides the current config/config.json by generating the default config again.
         self.generateDefaultConfig()
 
     def generateDefaultMapFeatures(self) -> None:
         """
-        Generates default map_features.json file by throwing app defaults into it.
+        Generates the default map_features.json file by throwing app defaults into it.
         """
 
         # Initializing app's default map features.
@@ -141,8 +143,8 @@ class IBEXMapper:
             "points": [],
             "circles": [],
             "texts": [],
-            # We set (0, 0) tuple as default since assert requires it to be tuple of floats.
-            # Projection will then detect whether the heatmap scale tuple is (0, 0) and if it is, projection will not
+            # We set (0, 0) tuple as default since assert requires it to be a tuple of floats.
+            # Projection will then detect whether the heatmap scale tuple is (0, 0), and if it is, projection will not
             # apply the scale (it will use dynamic scale generator based on given heatmap data).
             "heatmap_scale": "(0, 0)",
             "heatmap_color": "magma"
@@ -152,34 +154,9 @@ class IBEXMapper:
         with open(self.FEATURES_FILE, "w") as map_features:
             json.dump(default_map_features, map_features, indent=4)
 
-    # ----------------------------------------------
-    # Getters for all the map feature related stuff.
-    # ----------------------------------------------
-    def getMapFeatures(self) -> dict:
-
-        with open(self.FEATURES_FILE, "r") as features_file:
-            map_features = json.load(features_file)
-
-        return self.handler.formatMapFeaturesToPythonDatastructures(map_features)
-
-    def getPointsList(self) -> list:
-        return self.getMapFeatures().get("points", [])
-
-    def getCirclesList(self) -> list:
-        return self.getMapFeatures().get("circles", [])
-
-    def getTextsList(self) -> list:
-        return self.getMapFeatures().get("texts", [])
-
-    def getHeatmapScale(self) -> tuple[float, float]:
-        return self.getMapFeatures().get("heatmap_scale")
-
-    def getHeatmapColor(self) -> str:
-        return self.getMapFeatures().get("heatmap_color")
-
     def generateValidConfigFromPartialInfo(self, partial_config: dict) -> dict:
         """
-        Method that takes a dictionary that have one or more config keys and turns it into a copy of current
+        Method that takes a dictionary that have one or more config keys and turns it into a copy of the current
         default config with overwritten user-given changes.
         Note: This is the only method that should be used to generate config dictionaries,
         because it contains assertion of config dictionary.
@@ -188,7 +165,7 @@ class IBEXMapper:
         Any dictionary that has at least 1 and at most all matching keys with config.
 
         :return:
-        Returns a non-stringlified, valid config dictionary.
+        Returns a non-stringified, valid config dictionary.
         """
 
         # Gets the default config.
@@ -207,7 +184,7 @@ class IBEXMapper:
 
     def checkFor_L_Mismatch(self, file_max_l: int, config_max_l: int) -> None:
         """
-        Method tha checks a very dangerous exception, which is file max l being higher than config max l and
+        Method that checks a very dangerous exception, which is file max l being higher than config max l and
         raising ValueError if it actually is higher.
         :param file_max_l:
         File detected max l.
@@ -215,6 +192,6 @@ class IBEXMapper:
         :param config_max_l:
         Max l declared in config.
         """
-        if file_max_l < config_max_l:
+        if file_max_l > config_max_l:
             raise ValueError("Config error: Config max l should be greater or equal to file max l.")
-            
+

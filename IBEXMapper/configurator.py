@@ -12,20 +12,20 @@ class Configurator:
         
     def buildCenteringRotation(self, new_central_vector: np.ndarray) -> np.ndarray:
         """
-        Method that calculates matrix that is responsible for rotating the grid in such way that user given vector
-        gets placed at the center of mollweide projection map.
+        Method that calculates the matrix that is responsible for rotating the grid in such a way that the user given vector
+        gets placed at the center of a mollweide projection map.
 
         :param new_central_vector:
         User given vector within range from (-180, -90) to (180, 90) (in degrees).
         Note: This vector's coordinates are verified outside this class.
 
         :return:
-        Returns matrix that is calculated from given vector and angle formula for 3d rotations (rotation around given
-        vector for given angle). Numerically it's a 3D numpy array.
+        Returns matrix calculated from a given vector and angle formula for 3d rotations (rotation around a given
+        vector for a given angle). Numerically, it's a 3D numpy array.
         """
         print("Building centering rotation...")
 
-        # Cartesian equivalent of elliptical (0, 0) vector (we assume that the sphere has radius of 1)
+        # Cartesian equivalent of elliptical (0, 0) vectors (we assume that the sphere has a radius of 1)
         current_vec = np.array([[1., 0., 0.]])
 
         # Edge case correction, brute force way.
@@ -45,9 +45,9 @@ class Configurator:
 
     def buildMeridianRotation(self, meridian_vector: np.ndarray, central_rotation: np.ndarray) -> np.ndarray:
         """
-        Method that calculates the second rotation, which purpose is to place the meridian vector on the north
-        part of meridian. The angle is derived from principle that we will need y coordinate of the vector after
-        transforming it to cartesian and rotating it with first rotation to be equal to 0.
+        Method that calculates the second rotation, whose purpose is to place the meridian vector on the north
+        part of meridian. The angle is derived from the principle that we will need y coordinate of the vector after
+        transforming it to cartesian and rotating it with the first rotation to be equal to 0.
         Now, there are two solutions to this equation, so we use arctan2 function to make sure that the angle
         is always the "north angle".
 
@@ -74,8 +74,8 @@ class Configurator:
         # Rotate the vector using central rotation
         rotated_meridian_vector_in_cartesian = central_rotation @ meridian_vector_in_cartesian
 
-        # Take y and z parts of the vector after central rotation and calculate the angle.
-        # Note: The np.arctan2() function has a range of (-pi, pi) (used specifically to make sure that the given angle
+        # Take y and z parts of the vector after the central rotation and calculate the angle.
+        # Note: The np.arctan2() function has a range (-pi, pi) (used specifically to make sure that the given angle
         # aligns to "north").
         y, z = rotated_meridian_vector_in_cartesian[1], rotated_meridian_vector_in_cartesian[2]
         beta = np.arctan2(y, z)
