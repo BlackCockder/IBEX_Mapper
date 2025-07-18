@@ -130,6 +130,26 @@ def getMapFeatures() -> dict:
     return _mapper.handler.getMapFeatures()
 
 
+def getPointsList() -> list:
+    return _mapper.handler.getPointsList()
+
+
+def getCirclesList() -> list:
+    return _mapper.handler.getCirclesList()
+
+
+def getTextsList() -> list:
+    return _mapper.handler.getTextsList()
+
+
+def getHeatmapScale() -> tuple[float, float]:
+    return _mapper.handler.getHeatmapScale()
+
+
+def getHeatmapColor() -> str:
+    return _mapper.handler.getHeatmapColor()
+
+
 def cleanMap() -> None:
     # Warning: Clears all points, circles, texts and defaults  heatmap scale and color.
     return _mapper.map_features.cleanMap()
