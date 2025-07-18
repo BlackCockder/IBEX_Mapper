@@ -96,7 +96,7 @@ class IBEXMapper:
             central_rotation = self.configurator.buildCenteringRotation(config["central_point"])
 
             # If central and meridian points are the same, do only the first rotation.
-            if np.allclose(config["central_point"], config["meridian_point"]):
+            if np.allclose(config["central_point"], config["meridian_point"]) or np.allclose(config["meridian_point"], [0.0, 0.0]):
 
                 # Why we transpose will be explained in few next lines.
                 main_rotation = central_rotation.T
@@ -105,7 +105,7 @@ class IBEXMapper:
                 # Build the second rotation.
                 meridian_rotation = self.configurator.buildMeridianRotation(config["meridian_point"], central_rotation)
 
-                # Combine rotations and transpose (again, why we transpose will be explained in a second.
+                # Combine rotations and transpose (again, why we transpose will be explained in a second).
                 main_rotation = (meridian_rotation @ central_rotation).T
 
             # Rotate the grid by transposed combined rotation.
@@ -122,7 +122,7 @@ class IBEXMapper:
             heatmap_data = self.calculator.interpolateDataForNewGrid(heatmap_data, lat, lon)
 
         # Filter out all negative values if this option in config is false.
-        if not config["allow_negative_values"]:
+        if not config["show_negative_values"]:
             heatmap_data[heatmap_data < 0] = 0
 
         # Passes all of this data to second main method, which is projection.
@@ -142,7 +142,7 @@ class IBEXMapper:
             "rotate": "False",
             "central_point": "(0, 0)",  # (lon, lat)
             "meridian_point": "(0, 0)",
-            "allow_negative_values": "True",
+            "show_negative_values": "True",
             "map_features_type_checking": "True"
         }
 

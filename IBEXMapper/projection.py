@@ -81,8 +81,8 @@ class Projection:
 
 
         final_rotation = np.array([])
-
-        if np.allclose(central_coords, meridian_coords) or np.allclose(meridian_coords, [0.0, 0.0]) :
+        
+        if np.allclose(central_coords, meridian_coords) or np.allclose(meridian_coords, [0.0, 0.0]):
             final_rotation = rotation1
         else:
             final_rotation = rotation2 @ rotation1

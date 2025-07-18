@@ -1,6 +1,18 @@
+
 # IBEX Mapper
 
 IBEX Mapper is a Python library for creating and manipulating spherical maps with various features. It provides functionality for generating heatmaps, adding points, circles, and text annotations to maps, and configuring map projections.
+
+## Authors
+
+**Wiktor Tworzewski**  
+Physics Student\
+GitHub: [@xVeroNy](https://github.com/xVeroNy)
+
+**Maciej Kobiela**  
+Physics Student\
+GitHub: [@BlackCockder](https://github.com/BlackCockder)
+
 
 ## Features
 
@@ -57,9 +69,10 @@ Intended use is with `createNewConfig(config)`.
 **Valid keys and values:**
 - `map_accuracy` (int): Resolution of the map. Range: positive integers. Default is 400.
 - `max_l_to_cache` (int): Maximum spherical harmonic degree to cache. Range: positive integers. Default is 30
-- `rotate` (bool): Whether to rotate the map.
-- `central_point` (tuple[float, float]): Center of the map in (longitude, latitude). Range: longitude [-180, 180], latitude [-90, 90].
-- `meridian_point` (tuple[float, float]): Meridian reference point in (longitude, latitude). Range: longitude [-180, 180], latitude [-90, 90].
+- `rotate` (bool): Whether to rotate the map. Default is False
+- `central_point` (tuple[float, float]): Center of the map in (longitude, latitude). Range: longitude [-180, 180], latitude [-90, 90]. Default is (0, 0).
+- `meridian_point` (tuple[float, float]): Meridian reference point in (longitude, latitude). Range: longitude [-180, 180], latitude [-90, 90].  Default is (0, 0).
+>  **Note:** If the user wants to apply only the first rotation (based on the central point), they can simply set the `central_point` to coordinates other than `(0, 0)`. The application assumes that if the `meridian_point` is left at `(0, 0)`, the second rotation will be skipped.
 - `allow_negative_values` (bool): Whether to allow negative values in the heatmap.
 - `map_features_type_checking` (bool): Whether to type-check all map features related functions.
 
