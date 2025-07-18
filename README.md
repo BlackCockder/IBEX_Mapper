@@ -33,11 +33,13 @@ Returns the IBEXMapper instance.
 **Returns:**
 - IBEXMapper object: The singleton instance of the IBEXMapper class.
 
-#### `generateSingleMapFromGivenFilePath(link, config=None)`
+#### `generateSingleMapFromGivenFilePath(link, output_path, config=None)`
 Generates a map from a data file.
 
 **Parameters:**
 - `link` (str): Path to the data file.
+- `output_path` (str, optional): Path to folder where the file will be placed. It will make directories if needed.
+Default is `output/` in app's root directory.
 - `config` (dict, optional): Configuration dictionary. If not provided, the default configuration is used.
 
 **Returns:**
@@ -46,24 +48,26 @@ Generates a map from a data file.
 ### Configuration Functions
 
 #### `setDefaultConfig(config)`
-Sets a new default configuration.
+Sets a new default configuration. Automatically turns all python datastructures into strings.
+Intended use is with `createNewConfig(config)`.
 
 **Parameters:**
 - `config` (dict): Configuration dictionary with valid keys and values.
 
 **Valid keys and values:**
-- `map_accuracy` (int): Resolution of the map. Range: positive integers, typically around 400.
-- `max_l_to_cache` (int): Maximum spherical harmonic degree to cache. Range: positive integers, typically around 30.
+- `map_accuracy` (int): Resolution of the map. Range: positive integers. Default is 400.
+- `max_l_to_cache` (int): Maximum spherical harmonic degree to cache. Range: positive integers. Default is 30
 - `rotate` (bool): Whether to rotate the map.
 - `central_point` (tuple[float, float]): Center of the map in (longitude, latitude). Range: longitude [-180, 180], latitude [-90, 90].
 - `meridian_point` (tuple[float, float]): Meridian reference point in (longitude, latitude). Range: longitude [-180, 180], latitude [-90, 90].
 - `allow_negative_values` (bool): Whether to allow negative values in the heatmap.
+- `map_features_type_checking` (bool): Whether to type-check all map features related functions.
 
 #### `getDefaultConfig()`
 Retrieves the current default configuration.
 
 **Returns:**
-- dict: The current default configuration.
+- dict: The current default configuration. Contains python datastructures.
 
 #### `resetConfigToDefaultConfig()`
 Resets to the original default configuration.
@@ -75,15 +79,15 @@ Resets to the original default configuration.
 Creates a valid configuration from partial information.
 
 **Parameters:**
-- `config` (dict): Partial configuration dictionary with valid keys and values.
+- `config` (dict): Partial configuration dictionary with valid keys and values. It is always type-checked.
 
 **Returns:**
-- dict: Complete configuration dictionary with default values for missing keys.
+- dict: Complete configuration dictionary with default values for missing keys (as intended).
 
-### Point Management Functions
+### Point Related Functions
 
 #### `addPoint(point_name, coordinates, color="g", show_text=True, point_type="o")`
-Adds a point to the map.
+Adds a point to the map. Is type-checked by default.
 
 **Parameters:**
 - `point_name` (str): Name of the point.
@@ -110,10 +114,10 @@ Removes all points from the map.
 **Returns:**
 - None
 
-### Circle Management Functions
+### Circle Related Functions
 
 #### `addCircle(circle_name, coordinates_of_circle_center, angle=90, color="g", linestyle="-")`
-Adds a circle to the map.
+Adds a circle to the map. It is type-checked by default.
 
 **Parameters:**
 - `circle_name` (str): Name of the circle.
@@ -140,16 +144,16 @@ Removes all circles from the map.
 **Returns:**
 - None
 
-### Text Management Functions
+### Text Relate Functions
 
 #### `addMapText(text_name, coords, color, font_size=8, tilt_angle=0)`
-Adds text to the map.
+Adds fixed (!) text to the map. It is type-checked by default.
 
 **Parameters:**
 - `text_name` (str): Name of the text.
 - `coords` (tuple[float, float]): Coordinates of the text in (longitude, latitude). Range: longitude [-180, 180], latitude [-90, 90].
 - `color` (str): Color of the text.
-- `font_size` (int, optional): Font size of the text. Range: [8, 72]. Default: 8.
+- `font_size` (int, optional): Font size of the text. Range: [4, 72]. Default: 8.
 - `tilt_angle` (int, optional): Tilt angle of the text in degrees. Range: [0, 360]. Default: 0.
 
 **Returns:**
@@ -170,7 +174,7 @@ Removes all text from the map.
 **Returns:**
 - None
 
-### Heatmap Management Functions
+### Heatmap Related Functions
 
 #### `changeHeatmapScale(color)`
 Changes the heatmap scale.
@@ -211,10 +215,94 @@ Clears all points, circles, texts, and resets heatmap settings.
 - None
 
 #### `toggleTypeChecking()`
-Toggles type checking for function parameters.
+Toggles type checking for map features related functions.
 
 **Returns:**
 - None
+
+## All Type-Check Valid Values for All Methods
+
+This section outlines the expected types, ranges, and accepted values for each configurable or user-defined parameter used in IBEX Mapper. Inputs outside these constraints will raise `TypeError` or `ValueError`.
+
+### Configuration Dictionary (`config`)
+
+| Key                        | Type                                | Accepted Values / Range                                                                 |
+|---------------------------|-------------------------------------|------------------------------------------------------------------------------------------|
+| `map_accuracy`            | `int`                               | Must be a positive integer (`> 0`)                                                      |
+| `max_l_to_cache`          | `int`                               | Must be a positive integer (`> 0`)                                                      |
+| `rotate`                  | `bool` or `'True'` / `'False'`      | Boolean or string `'True'` / `'False'` (case-insensitive)                              |
+| `allow_negative_values`   | `bool` or `'True'` / `'False'`      | Boolean or string `'True'` / `'False'` (case-insensitive)                              |
+| `map_features_type_checking` | `bool` or `'True'` / `'False'`   | Boolean or string `'True'` / `'False'` (case-insensitive)                              |
+| `central_point`           | `tuple[float, float]`               | Longitude in `[-180, 180]`, Latitude in `[-90, 90]`                                     |
+| `meridian_point`          | `tuple[float, float]`               | Longitude in `[-180, 180]`, Latitude in `[-90, 90]`                                     |
+
+---
+
+### Coordinates
+
+Used for: `coordinates`, `coords`, `central_point`, `meridian_point`
+
+- Must be a `tuple[float, float]`
+- Longitude: `[-180, 180]`
+- Latitude: `[-90, 90]`
+
+---
+
+### Colors (for points, circles, text)
+
+Accepted strings:
+
+```
+'b', 'g', 'r', 'c', 'm', 'y', 'k', 'w'
+```
+
+---
+
+### Point Marker Types
+
+Accepted strings for `point_type`:
+
+```
+'.', ',', 'o', 'v', '^', '<', '>', '1', '2', '3', '4', '8',
+'s', 'p', 'P', '*', 'h', 'H', '+', 'x', 'X', 'D', 'd', '|', '_'
+```
+
+---
+
+### Circle Parameters
+
+| Parameter     | Type               | Accepted Values                                      |
+|---------------|--------------------|------------------------------------------------------|
+| `angle`       | `float` or `int`   | Range: (0, 360) — exclusive bounds                   |
+| `linestyle`   | `str`              | `'solid'`, `'dashed'`, `'dashdot'`, `'dotted'`, `'-'`, `'--'`, `'-.'`, `':'` |
+
+---
+
+### Text Parameters
+
+| Parameter     | Type               | Accepted Values                                      |
+|---------------|--------------------|------------------------------------------------------|
+| `font_size`   | `int`              | Range: [4, 72]                                       |
+| `tilt_angle`  | `float` or `int`   | Range: [0, 360] (degrees, counterclockwise)          |
+
+---
+
+### Heatmap Scale
+
+- Must be a `tuple[float, float]`
+- Format: `(x, y)` where `x < y`
+- Use `(0, 0)` for **automatic scaling** (default)
+
+---
+
+### Heatmap Color Palettes
+
+Accepted strings:
+
+```
+'batlow', 'batlowK', 'batlowW', 'viridis', 'magma', 'plasma', 'inferno', 'cividis'
+```
+
 
 ## File Structure
 
@@ -227,9 +315,13 @@ The IBEX Mapper project consists of the following main components:
 - `IBEXMapper/handler.py`: Data processing and validation
 - `IBEXMapper/map_features.py`: Management of map features (points, circles, text)
 - `IBEXMapper/projection.py`: Map projection and visualization
+- `public/`: folder that contains color palettes data that app loads (for custom color palettes)
 
 ## Usage Example
 
+Example code usage as packages is in `example.py` file.
+
+This is NOT part of `example.py`, but it is valid example as well:
 ```python
 import IBEXMapper as ibex
 
@@ -256,3 +348,4 @@ config = ibex.createNewConfig({
 })
 ibex.generateSingleMapFromGivenFilePath("path/to/data.txt", config)
 ```
+
