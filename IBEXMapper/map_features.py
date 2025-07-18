@@ -29,7 +29,8 @@ class MapFeatures:
                  coordinates: tuple[float, float],
                  color: str,
                  show_text: bool,
-                 point_type: str) -> None:
+                 point_type: str,
+                 hollow: bool) -> None:
         """
         Add a point to the map.
 
@@ -47,12 +48,16 @@ class MapFeatures:
 
         :param point_type:
         Type of point marker to display
+
+        :param hollow:
+        Whether the point marker should be hollow or not
             
         Note:
         If a point with the same name already exists, it will be overwritten.
         """
+
         if self.getMapFeaturesTypeCheckingValue():
-            self.handler.assertPoint(coordinates, color, show_text, point_type)
+            self.handler.assertPoint(coordinates, color, show_text, point_type,  hollow)
         
         with open(self.FEATURES_FILE, 'r') as f:
             data = json.load(f)
@@ -64,8 +69,9 @@ class MapFeatures:
             "name": point_name,
             "coordinates": self.handler.stringifyValue(coordinates),
             "color": color,
-            "show_text": show_text,
-            "point_type": point_type
+            "show_text": self.handler.stringifyValue(show_text),
+            "point_type": point_type,
+            "hollow": self.handler.stringifyValue(hollow)
         })
 
         with open(self.FEATURES_FILE, 'w') as f:
