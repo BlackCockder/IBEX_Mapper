@@ -117,7 +117,7 @@ class Projection:
         pcm = ax.pcolormesh(lon, lat, heatmap_data, cmap=selected_cmap, shading="auto",
                             rasterized=True)
         cbar = fig.colorbar(pcm, ax=ax, orientation="horizontal", pad=0.05)
-        cbar.set_label(r'ENA flux (cm$^{-2}$s$^{-1}$sr$^{-1}$keV$^{-1}$)', fontsize=12)
+        cbar.set_label(r'ENA flux (cm$^{-2}$s$^{-1}$sr$^{-1}$keV$^{-1}$)', fontsize=20)
         cbar.ax.tick_params(labelsize=15)
 
         # Adds Central and Meridian Point to the map
@@ -125,7 +125,6 @@ class Projection:
         self.addCirclesToMap(ax, rotate, final_rotation)
         self.addTextsToMap(ax)
         self.drawSelectedCoordinatesAlongsideGraticule(ax, rotate, final_rotation)
-        ax.legend(loc='lower left')
 
         # If no output path is selected, it chooses the default directory, otherwise it selects chose one
         plt.tight_layout()
@@ -245,16 +244,16 @@ class Projection:
         for parallel_step in latitude_graticule_space:
             lon_line = np.linspace(-np.pi, np.pi, n_seg)
             lat_line = np.full_like(lon_line, parallel_step)
-            lon_r, lat_r = self.rotatePointLonLatCoordinates(lon_line, lat_line, R_mat)
-            lon_r, lat_r = self.cutDataForMolleweideProjeciton(lon_r, lat_r)
+            lon_r, lat_r = self.rotatePointLonLatCoordinates(lon_line, lat_line, rotation_matrix)
+            lon_r, lat_r = self.cutDataForMollweideProjection(lon_r, lat_r)
             ax.plot(-lon_r, lat_r, lw=.4, color='grey', zorder=3)
             
         # Drawing all latitude meridians
         for lon0 in np.deg2rad(np.arange(-180, 181, lon_step)):
             lat_line = np.linspace(-np.pi / 2, np.pi / 2, n_seg)
             lon_line = np.full_like(lat_line, lon0)
-            lon_r, lat_r = self.rotatePointLonLatCoordinates(lon_line, lat_line, R_mat)
-            lon_r, lat_r = self.cutDataForMolleweideProjeciton(lon_r, lat_r)
+            lon_r, lat_r = self.rotatePointLonLatCoordinates(lon_line, lat_line, rotation_matrix)
+            lon_r, lat_r = self.cutDataForMollweideProjection(lon_r, lat_r)
             ax.plot(-lon_r, lat_r, lw=.4, color='grey', zorder=3)
 
     def addPointsToMap(self, ax: Axes, rotate: bool, final_rotation: np.ndarray) -> None:
