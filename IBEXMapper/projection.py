@@ -75,7 +75,6 @@ class Projection:
 
         fig = plt.figure(figsize=(8, 5))
         ax = fig.add_subplot(111, projection="mollweide")
-        ax.set_title("IBEX Mapper")
 
         rotation1 = self.configurator.buildCenteringRotation(central_coords)
         rotation2 = self.configurator.buildMeridianRotation(meridian_coords, rotation1)
@@ -83,7 +82,7 @@ class Projection:
 
         final_rotation = np.array([])
 
-        if np.allclose(central_coords, meridian_coords):
+        if np.allclose(central_coords, meridian_coords) or np.allclose(meridian_coords, [0.0, 0.0]) :
             final_rotation = rotation1
         else:
             final_rotation = rotation2 @ rotation1
