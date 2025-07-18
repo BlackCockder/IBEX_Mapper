@@ -2,6 +2,7 @@ import json
 import os
 from .handler import Handler
 
+
 class MapFeatures:
     """
     Class for managing various map features in the IBEX Mapper application.
@@ -11,7 +12,9 @@ class MapFeatures:
     stored in a JSON file for persistence.
     """
     # Initializing map_features folder using os package to ensure OS compatibility.
+    CONFIG_DIR = "config"
     FEATURES_DIR = "map_features"
+    CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
     FEATURES_FILE = os.path.join(FEATURES_DIR, "map_features.json")
     
     def __init__(self, handler: Handler):
@@ -46,18 +49,16 @@ class MapFeatures:
         Type of point marker to display
             
         Note:
-        If a point with the same name already exists, it will not be added
-        and a message will be printed.
+        If a point with the same name already exists, it will be overwritten.
         """
-
-        self.handler.assertPoint(coordinates, color, show_text, point_type)
+        if self.getMapFeaturesTypeCheckingValue():
+            self.handler.assertPoint(coordinates, color, show_text, point_type)
         
         with open(self.FEATURES_FILE, 'r') as f:
             data = json.load(f)
 
         if any(p['name'] == point_name for p in data.get("points", [])):
-            print(f"Point with name '{point_name}' already exists.")
-            return
+            print(f"Point with name '{point_name}' already exists. Overwriting...")
           
         data["points"].append({
             "name": point_name,
@@ -142,18 +143,16 @@ class MapFeatures:
         Style of the circle's outline (e.g., 'solid', 'dashed')
 
         Note:
-        If a circle with the same name already exists, it will not be added
-        and a message will be printed.
+        If a circle with the same name already exists, it will be overwritten.
         """
-
-        self.handler.assertCircle(coordinates, alpha, color, linestyle)
+        if self.getMapFeaturesTypeCheckingValue():
+            self.handler.assertCircle(coordinates, alpha, color, linestyle)
 
         with open(self.FEATURES_FILE, 'r') as f:
             data = json.load(f)
 
         if any(p['name'] == circle_name for p in data.get("circles", [])):
-            print(f"Circle with name '{circle_name}' already exists.")
-            return
+            print(f"Circle with name '{circle_name}' already exists. Overwriting...")
 
         data["circles"].append({
             "name": circle_name,
@@ -239,18 +238,17 @@ class MapFeatures:
         Rotation angle of the text in degrees. Defaults to 0.
 
         Note:
-        If a text with the same name already exists, it will not be added
-        and a message will be printed.
+        If a text with the same name already exists, it will be overwritten.
         """
-      
-        self.handler.assertText(coordinates, color, font_size, tilt_angle)
+
+        if self.getMapFeaturesTypeCheckingValue():
+            self.handler.assertText(coordinates, color, font_size, tilt_angle)
 
         with open(self.FEATURES_FILE, 'r') as f:
             data = json.load(f)
 
             if any(p['name'] == text_name for p in data.get("texts", [])):
-                print(f"Text with name '{text_name}' already exists.")
-                return
+                print(f"Text with name '{text_name}' already exists. Overwriting...")
 
             data["texts"].append({
                 "name": text_name,
@@ -312,8 +310,16 @@ class MapFeatures:
     # ----------------------------------------
 
     def changeHeatmapScale(self, scale: tuple[float, float]) -> None:
+        """
+        Method that changes the heatmap scale.
 
-        self.handler.assertHeatmapScale(scale)
+        :param scale:
+        A tuple[x: float, y: float] containing the new heatmap scale.
+        Note: x must always be lower than y.
+        """
+
+        if self.getMapFeaturesTypeCheckingValue():
+            self.handler.assertHeatmapScale(scale)
 
         with open(self.FEATURES_FILE, 'r') as f:
             data = json.load(f)
@@ -324,6 +330,9 @@ class MapFeatures:
             json.dump(data, f, indent=4)
 
     def resetHeatmapScaleToDefault(self):
+        """
+        Method that resets the heatmap scale to the default value.
+        """
         with open(self.FEATURES_FILE, 'r') as f:
             data = json.load(f)
 
@@ -333,20 +342,33 @@ class MapFeatures:
             json.dump(data, f, indent=4)
 
     def selectHeatmapColorPalette(self, color: str) -> None:
+        """
+        Method that selects the color palette.
+
+        :param color:
+        String that represents the color palette.
+        """
 
         # Asserts that color is valid color.
-        self.handler.assertHeatmapColor(color)
+        if self.getMapFeaturesTypeCheckingValue():
+            self.handler.assertHeatmapColor(color)
 
         # We load the file here.
         with open(self.FEATURES_FILE, 'r') as f:
             data = json.load(f)
 
+        # Change the color.
         data["heatmap_color"] = color
 
+        # Dump it back.
         with open(self.FEATURES_FILE, 'w') as f:
             json.dump(data, f, indent=4)
 
     def resetHeatmapColorPalette(self):
+        """
+        Method that resets the color palette back to the default value, which is "magma".
+        """
+
         with open(self.FEATURES_FILE, 'r') as f:
             data = json.load(f)
 
@@ -356,8 +378,24 @@ class MapFeatures:
             json.dump(data, f, indent=4)
 
     def cleanMap(self) -> None:
+        """
+        Method that cleans all map features.
+        """
         self.removeAllPoints()
         self.removeAllCircles()
         self.removeAllMapText()
         self.resetHeatmapScaleToDefault()
         self.resetHeatmapColorPalette()
+
+    def getMapFeaturesTypeCheckingValue(self) -> bool:
+        """
+        Helper method that returns current value of type checking flag and enforces it in all map features methods.
+        """
+
+        # Load the file.
+        with open(self.CONFIG_FILE, 'r') as f:
+            config = json.load(f)
+
+        # We cannot access getConfig method in map_features so we need to manually check if the value is True or False.
+        value = config.get("map_features_type_checking", "False")
+        return value.lower() == "true"
