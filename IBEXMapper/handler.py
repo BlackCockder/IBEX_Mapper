@@ -11,6 +11,7 @@ class Handler:
     This class is responsible for using logic from calculator to build the final heatmap matrix
     and for sanitizing user given data.
     """
+    
     # Initializing the map_features folder using os package to ensure OS compatibility.
     CONFIG_DIR = "config"
     CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
@@ -153,7 +154,7 @@ class Handler:
 
             try:
 
-                # Use parseStringToPythonDatastructure to parse data.
+                # Use parseStringsToPythonDatastructures to parse data.
                 formatted_config[key] = self.parseStringsToPythonDatastructures(value, expected_type)
 
             except Exception as e:
@@ -476,14 +477,14 @@ class Handler:
 
         :param font_size:
         A float indicating the size of the font. There is a minimum and maximum font size.
-
+        
         :param tilt_angle:
         A float indicating the tilt angle of the text. Range is [0, 360]. Rotates counterclockwise.
 
         """
 
         # List of acceptable color inputs.
-        colors = []
+        colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
 
         # Minimum and maximum acceptable font size.
         font_size_min = 4
@@ -497,13 +498,13 @@ class Handler:
             raise TypeError("color must be a string.")
         if color not in colors:
             raise ValueError(f"Invalid color '{color}'. Must be one of: {colors}")
-
+            
         # Asserts that font size is a positive integer and is given within a defined range.
         if not isinstance(font_size, int):
             raise TypeError("font_size must be an integer.")
         if not (font_size_min <= font_size <= font_size_max):
             raise ValueError(f"font_size must be between {font_size_min} and {font_size_max}.")
-
+         
         # Asserts that a tilt angle is a float (or int) in range [0, 360].
         if not isinstance(tilt_angle, (float, int)):
             raise TypeError("tilt_angle must be a float or int.")
@@ -567,6 +568,7 @@ class Handler:
         """
         Method that asserts that the given coordinates are valid elliptical coordinates.
         If input is not valid, it raises TypeError or ValueError.
+
 
         :param coordinates:
         A tuple[float, float] containing the coordinates.

@@ -1,17 +1,7 @@
-"""
-Module for managing map features in the IBEX Mapper application.
-
-This module provides functionality for adding, removing, and managing various
-map features such as points, circles, text annotations, and heatmap settings.
-All features are stored in a JSON file for persistence.
-"""
-
 import json
 import os
 from .handler import Handler
 
-
-# noinspection DuplicatedCode
 class MapFeatures:
     """
     Class for managing various map features in the IBEX Mapper application.
@@ -19,12 +9,8 @@ class MapFeatures:
     This class provides methods to add, remove, and manage different types of map features
     such as points, circles, text annotations, and heatmap settings. All features are
     stored in a JSON file for persistence.
-    
-    :attributes:
-    FEATURES_DIR (str): Directory where map features are stored
-    FEATURES_FILE (str): Path to the JSON file storing map features
     """
-    
+    # Initializing map_features folder using os package to ensure OS compatibility.
     FEATURES_DIR = "map_features"
     FEATURES_FILE = os.path.join(FEATURES_DIR, "map_features.json")
     
@@ -112,7 +98,6 @@ class MapFeatures:
 
         with open(self.FEATURES_FILE, 'w') as f:
             json.dump(data, f, indent=4)
-
 
     def removeAllPoints(self) -> None:
         """
@@ -257,7 +242,7 @@ class MapFeatures:
         If a text with the same name already exists, it will not be added
         and a message will be printed.
         """
-
+      
         self.handler.assertText(coordinates, color, font_size, tilt_angle)
 
         with open(self.FEATURES_FILE, 'r') as f:
@@ -327,6 +312,9 @@ class MapFeatures:
     # ----------------------------------------
 
     def changeHeatmapScale(self, scale: tuple[float, float]) -> None:
+
+        self.handler.assertHeatmapScale(scale)
+
         with open(self.FEATURES_FILE, 'r') as f:
             data = json.load(f)
 
@@ -345,6 +333,11 @@ class MapFeatures:
             json.dump(data, f, indent=4)
 
     def selectHeatmapColorPalette(self, color: str) -> None:
+
+        # Asserts that color is valid color.
+        self.handler.assertHeatmapColor(color)
+
+        # We load the file here.
         with open(self.FEATURES_FILE, 'r') as f:
             data = json.load(f)
 
@@ -361,7 +354,6 @@ class MapFeatures:
 
         with open(self.FEATURES_FILE, 'w') as f:
             json.dump(data, f, indent=4)
-
 
     def cleanMap(self) -> None:
         self.removeAllPoints()
