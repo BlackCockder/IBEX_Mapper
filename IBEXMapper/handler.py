@@ -1,4 +1,5 @@
 import ast
+import json
 from pathlib import Path
 import numpy as np
 from .calculator import Calculator
@@ -6,14 +7,16 @@ import os
 
 
 class Handler:
-    CONFIG_DIR = "config"
-    FEATURES_DIR = "map_features"
-    CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
-    FEATURES_FILE = os.path.join(FEATURES_DIR, "map_features.json")
     """
     This class is responsible for using logic from calculator to build the final heatmap matrix
     and for sanitizing user given data.
     """
+    # Initializing map_features folder using os package to ensure OS compatibility.
+    CONFIG_DIR = "config"
+    CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
+    FEATURES_DIR = "map_features"
+    FEATURES_FILE = os.path.join(FEATURES_DIR, "map_features.json")
+
     def __init__(self, calculator: Calculator):
         self.calculator = calculator
 
@@ -95,7 +98,7 @@ class Handler:
         Value to convert. It supports lists of dictionaries even.
 
         :returns:
-        Returns stringlified value. Can be a dictionary or list.
+        Returns stringnified value. Can be a dictionary or list.
         """
 
         # Brute force all potential values.
@@ -136,6 +139,7 @@ class Handler:
             "central_point": tuple[float, float],
             "meridian_point": tuple[float, float],
             "allow_negative_values": bool,
+            "map_features_type_checking": bool
         }
 
         # Initializing formatted config dictionary.
@@ -149,7 +153,7 @@ class Handler:
 
             try:
 
-                # Use parseStringToPythonDatastructure to parse data.
+                # Use parseStringsToPythonDatastructures to parse data.
                 formatted_config[key] = self.parseStringsToPythonDatastructures(value, expected_type)
 
             except Exception as e:
@@ -267,9 +271,35 @@ class Handler:
         else:
             return value
 
+    # ----------------------------------------------
+    # Getters for all the map feature related stuff.
+    # ----------------------------------------------
+    def getMapFeatures(self) -> dict:
+
+        with open(self.FEATURES_FILE, "r") as features_file:
+            map_features = json.load(features_file)
+
+        return self.formatMapFeaturesToPythonDatastructures(map_features)
+
+    def getPointsList(self) -> list:
+        return self.getMapFeatures().get("points", [])
+
+    def getCirclesList(self) -> list:
+        return self.getMapFeatures().get("circles", [])
+
+    def getTextsList(self) -> list:
+        return self.getMapFeatures().get("texts", [])
+
+    def getHeatmapScale(self) -> tuple[float, float]:
+        return self.getMapFeatures().get("heatmap_scale")
+
+    def getHeatmapColor(self) -> str:
+        return self.getMapFeatures().get("heatmap_color")
+
     def assertConfig(self, config: dict) -> None:
         """
         Method that asserts every value associated with every key in given, non-valid config dictionary.
+        If input is not valid, raises TypeError or ValueError.
 
         :param config:
         Config dictionary with keys and values to check.
@@ -282,7 +312,8 @@ class Handler:
             "rotate",
             "allow_negative_values",
             "central_point",
-            "meridian_point"
+            "meridian_point",
+            "map_features_type_checking",
         }
 
         # Asserts that given config only contains config dictionary keys.
@@ -326,138 +357,237 @@ class Handler:
             elif not isinstance(allow_negative_values, bool):
                 raise ValueError("Allow negative values must be a boolean.")
 
-        # Helper function for asserting that all geopoints are given as floats of tuples in elliptical coordinates.
-        # Range is from (-180, -90) to (180, 90).
-        def validateGeoPoint(name, val):
-            try:
-                if isinstance(val, str):
-                    val = ast.literal_eval(val)
-                arr = np.array(val)
-                if arr.ndim != 1 or arr.shape[0] != 2:
-                    raise ValueError(f"{name} must be a 1D array of two values.")
-                lon, lat = arr
-                if not (-180 <= lon <= 180 and -90 <= lat <= 90):
-                    raise ValueError(f"{name} coordinates out of bounds: "
-                                     f"longitude must be in [-180, 180], latitude in [-90, 90].")
-            except Exception:
-                raise ValueError(f"{name} must be a 1D array-like structure of two floats (e.g., (lon, lat)).")
+        # Asserts that given type checking parameter is boolean.
+        if "map_features_type_checking" in config:
+            map_features_type_checking = config["map_features_type_checking"]
+            if isinstance(map_features_type_checking, str):
+                if map_features_type_checking.lower() not in ("true", "false"):
+                    raise ValueError("Map features type checking must be a boolean or a string 'True'/'False'.")
+            elif not isinstance(map_features_type_checking, bool):
+                raise ValueError("Map features type checking must be a boolean.")
 
-        # Asserts that given points are valid elliptical points. Uses the helper function.
+        # Asserts that given points are valid elliptical points.
         if "central_point" in config:
-            validateGeoPoint("Central point", config["central_point"])
+            self.assertCoordinates(config["central_point"], "Central point")
 
         if "meridian_point" in config:
-            validateGeoPoint("Meridian point", config["meridian_point"])
+            self.assertCoordinates(config["meridian_point"], "Meridian point")
 
     def assertPoint(self, coordinates: any, color: any, show_text: any, point_type: any) -> None:
-        # Define valid values (these should ideally be class-level constants or passed externally)
-        colors = []  # Fill this with valid color strings, e.g., ["red", "blue", "green"]
-        point_types = []  # Fill this with valid point type strings, e.g., ["x", "o", "triangle"]
+        """
+        Method that asserts that given point is valid point to add to map.
+        If input is not valid, raises TypeError or ValueError.
 
-        # 1. Assert coordinates are valid geographic (lon, lat)
+        :param coordinates:
+        A tuple[float, float] containing elliptical coordinates of the point.
+
+        :param color:
+        A string representing the color of the point.
+
+        :param show_text:
+        A boolean indicating if the point's text should be shown.
+
+        :param point_type:
+        A string representing the type of point, strongly associated with matplotlib.pyplot.
+
+        """
+
+        # Lists of acceptable inputs for colors and point types.
+        colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
+        point_types = [".", ",", "o", "v", "^", "<", ">", "1", "2", "3",
+                       "4", "8", "s", "p", "P", "*", "h", "H", "+", "x",
+                       "X", "D", "d", "|", "_"]
+
+        # Asserts that coordinates are valid elliptical coordinates (lon, lat).
         self.assertCoordinates(coordinates, "Point coordinates")
 
-        # 2. Color must be in predefined list
+        # Asserts that color must be a string and must be in predefined list.
         if not isinstance(color, str):
             raise TypeError("color must be a string.")
         if color not in colors:
             raise ValueError(f"Invalid color '{color}'. Must be one of: {colors}")
 
-        # 3. show_text must be boolean
+        # Asserts that show_text is a boolean.
         if not isinstance(show_text, bool):
             raise TypeError("show_text must be a boolean.")
 
-        # 4. point_type must be in predefined list
+        # Asserts that point_type is a string and is in predefined list.
         if not isinstance(point_type, str):
             raise TypeError("point_type must be a string.")
         if point_type not in point_types:
             raise ValueError(f"Invalid point_type '{point_type}'. Must be one of: {point_types}")
 
     def assertCircle(self, coordinates: any, alpha: any, color: any, linestyle: any) -> None:
-        # Valid options (populate these as needed)
-        colors = []       # Example: ["red", "blue", "green"]
-        linestyles = []   # Example: ["solid", "dashed", "dotted"]
+        """
+        Method that asserts that the given circle is valid circle to add to map.
+        If input is not valid, raises TypeError or ValueError.
 
-        # 1. Coordinates must be valid (lon, lat)
+        :param coordinates:
+        A tuple[float, float] containing elliptical coordinates of center of the circle.
+
+        :param alpha:
+        A float indicating the width of the circle. Its range is [0, 180].
+        Both 0 and 180 are technically valid but will generate point, not a circle (all points will stack in one place).
+        Note: It is in degrees and 90 degrees represents Great Circle (largest radius).
+
+        :param color:
+        A string representing the color of the circle.
+
+        :param linestyle:
+        A string representing the style of the circle.
+
+        """
+
+        # Lists of acceptable inputs for color and linestyles.
+        colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
+        linestyles = ['solid', 'dashed', 'dashdot', 'dotted', '-', '--', '-.', ':']
+
+        # Asserts that coordinates are valid elliptical coordinates (lon, lat)
         self.assertCoordinates(coordinates, "Circle coordinates")
 
-        # 2. Alpha must be a float in range (0, 360)
+        # Asserts that alpha is a float and is in range [0, 360] (in degrees, from 0 to 2*pi, rotates clockwise).
         if not isinstance(alpha, (float, int)):
             raise TypeError("alpha must be a float or int.")
         if not (0 < float(alpha) < 360):
             raise ValueError("alpha must be in the range (0, 360).")
 
-        # 3. Color must be in the list
+        # Asserts that color is a string and is in the list.
         if not isinstance(color, str):
             raise TypeError("color must be a string.")
         if color not in colors:
             raise ValueError(f"Invalid color '{color}'. Must be one of: {colors}")
 
-        # 4. Linestyle must be in the list
+        # Asserts that linestyle is a string and is in the list.
         if not isinstance(linestyle, str):
             raise TypeError("linestyle must be a string.")
         if linestyle not in linestyles:
             raise ValueError(f"Invalid linestyle '{linestyle}'. Must be one of: {linestyles}")
 
     def assertText(self, coordinates: any, color: any, font_size: any, tilt_angle: any) -> None:
-        # Valid options (define these as needed)
-        colors = []           # Example: ["red", "blue", "green"]
-        font_size_min = 8     # Minimum allowed font size
-        font_size_max = 72    # Maximum allowed font size
+        """
+        Method that asserts that given text is valid text to add to map.
+        If input is not valid, raises TypeError or ValueError.
 
-        # 1. Coordinates must be valid (lon, lat)
+        :param coordinates:
+        A tuple[float, float] containing the coordinates of the text.
+
+        :param color:
+        A string representing the color of the text.
+
+        :param font_size:
+        A float indicating the size of the font. There is minimum and maximum font size.
+
+        :param tilt_angle:
+        A float indicating the tilt angle of the text. Range is [0, 360]. Rotates counterclockwise.
+
+        """
+
+        # List of acceptable color inputs.
+        colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
+
+        # Minimum and maximum acceptable font size.
+        font_size_min = 4
+        font_size_max = 72
+
+        # Asserts that coordinates must be valid elliptical coordinates (lon, lat).
         self.assertCoordinates(coordinates, "Text coordinates")
 
-        # 2. Color must be in the list
+        # Asserts that color is a string and is in the list.
         if not isinstance(color, str):
             raise TypeError("color must be a string.")
         if color not in colors:
             raise ValueError(f"Invalid color '{color}'. Must be one of: {colors}")
 
-        # 3. Font size must be a positive integer within defined range
+        # Asserts that font size is a positive integer and is given within defined range.
         if not isinstance(font_size, int):
             raise TypeError("font_size must be an integer.")
         if not (font_size_min <= font_size <= font_size_max):
             raise ValueError(f"font_size must be between {font_size_min} and {font_size_max}.")
 
-        # 4. Tilt angle must be a float (or int) in [0, 360]
+        # Asserts that tilt angle is a float (or int) in range [0, 360].
         if not isinstance(tilt_angle, (float, int)):
             raise TypeError("tilt_angle must be a float or int.")
         if not (0 <= float(tilt_angle) <= 360):
             raise ValueError("tilt_angle must be in the range [0, 360].")
 
-
     def assertHeatmapScale(self, heatmap_scale: any) -> None:
+        """
+        Method that asserts that the given heatmap scale is valid.
+        If input is not valid, raises TypeError or ValueError.
+
+        :param heatmap_scale:
+        A tuple[float, float] that represents the heatmap scale.
+        First number must always be lesser than second number and both numbers cannot be equal to each other.
+        Note: (0, 0) tuple is valid, but will print warning that scale is not applied, since (0, 0)
+        is read by projection method as "Use automatic scaling generation" (which is default generation).
+
+        """
+
+        # Asserts that heatmap_scale is a tuple with two entries.
         if not isinstance(heatmap_scale, tuple) or len(heatmap_scale) != 2:
             raise TypeError("heatmap_scale must be a tuple of two numeric values.")
 
+        # Gets the numbers to check if the x < y.
         x, y = heatmap_scale
 
         if not all(isinstance(v, (float, int)) for v in (x, y)):
             raise TypeError("heatmap_scale must contain numeric (float or int) values.")
 
+        # Prints orange warning if (0, 0) is used.
         if (x, y) == (0, 0):
-            print("\033[38;5;208mWarning: Custom heatmap scale given is (0, 0). Projector therefore will use automatic scale selection.\033[0m")
+            print("\033[38;5;208mWarning: Custom heatmap scale given is (0, 0). "
+                  "Projector therefore will use automatic scale selection.\033[0m")
             return
 
+        # Asserts that x < y.
         if x >= y:
             raise ValueError("In heatmap_scale (x, y), x must be less than y and they must not be equal.")
 
     def assertHeatmapColor(self, heatmap_color: any) -> None:
-        # Define the allowed heatmap color palette
-        colors = []  # Example: ["viridis", "plasma", "magma", "inferno"]
+        """
+        Method that asserts that the given heatmap color is valid.
+        If input is not valid, raises TypeError or ValueError.
 
+        :param heatmap_color:
+        A string representing color palette of the heatmap.
+
+        """
+        # List of acceptable color palette inputs.
+        colors = ["batlow", "batlowK", "batlowW", "viridis", "magma"]
+
+        # Asserts that given color is a string.
         if not isinstance(heatmap_color, str):
             raise TypeError("heatmap_color must be a string.")
 
+        # Asserts that given color is the list of color palettes.
         if heatmap_color not in colors:
             raise ValueError(f"Invalid heatmap_color '{heatmap_color}'. Must be one of: {colors}")
 
     def assertCoordinates(self, coordinates: any, name: str) -> None:
+        """
+        Method that asserts that the given coordinates are valid elliptical coordinates.
+        If input is not valid, raises TypeError or ValueError.
+
+        :param coordinates:
+        A tuple[float, float] containing the coordinates.
+        Its intended range is from [-180, -90] to [180, 90].
+
+        :param name:
+        A string representing the name of the coordinates. For debugging purposes.
+
+        """
+
+        # Asserts that given coordinates are two-sized tuple.
         if not isinstance(coordinates, tuple) or len(coordinates) != 2:
             raise TypeError(f"{name} must be a tuple of two numeric values.")
+
+        # Gets the numerical values of lon and lat.
         lon, lat = coordinates
+
+        # Asserts that given coordinates values are floats or integers.
         if not all(isinstance(x, (float, int)) for x in (lon, lat)):
             raise TypeError(f"{name} must contain numeric (float or int) values.")
+
+        # Asserts that given coordinates are within defined bounds (elliptical bounds).
         if not (-180 <= lon <= 180 and -90 <= lat <= 90):
             raise ValueError(f"{name} out of bounds: longitude must be [-180, 180], latitude must be [-90, 90].")
