@@ -38,7 +38,7 @@ ibex.setDefaultConfig(ibex.createNewConfig({
     "allow_negative_values": False
 }))
 # And add our first point, that will be a blue x without a name on (-70, 30)
-ibex.addPoint("Testing point 1", (-70, 30), "b", False, "x")
+ibex.addPoint("Testing point 1", (-70, 30), "b", False, "o", True)
 ibex.generateSingleMapFromGivenFilePath(filepath)
 
 # Now rotate back to our new central and cartesian
@@ -108,6 +108,6 @@ ibex.generateSingleMapFromGivenFilePath(filepath, output_path)
 # ibex.generateSingleMapFromGivenFilePath(filepath, output_path)
 
 # Finally, we still can disable type checking (if user wants to use more matplotlib colors
-# or settings), but its not suggested.
+# or settings), but it is not suggested.
 ibex.toggleTypeChecking()
 # ibex.addPoint((43, "4"), "gf", ) # This will work now but generate error when map projecting.
