@@ -122,7 +122,7 @@ class IBEXMapper:
             heatmap_data = self.calculator.interpolateDataForNewGrid(heatmap_data, lat, lon)
 
         # Filter out all negative values if this option in config is false.
-        if not config["allow_negative_values"]:
+        if not config["show_negative_values"]:
             heatmap_data[heatmap_data < 0] = 0
 
         # Passes all of this data to second main method, which is projection.
@@ -142,7 +142,7 @@ class IBEXMapper:
             "rotate": "False",
             "central_point": "(0, 0)",  # (lon, lat)
             "meridian_point": "(0, 0)",
-            "allow_negative_values": "True",
+            "show_negative_values": "True",
             "map_features_type_checking": "True"
         }
 

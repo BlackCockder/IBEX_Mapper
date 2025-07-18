@@ -140,7 +140,7 @@ def cmd_config_set(
     if rotate is not None: upd["rotate"] = rotate
     if central_point is not None: upd["central_point"] = central_point
     if meridian_point is not None: upd["meridian_point"] = meridian_point
-    if allow_negative_values is not None: upd["allow_negative_values"] = allow_negative_values
+    if allow_negative_values is not None: upd["show_negative_values"] = allow_negative_values
     if not upd:
         console.print("[red]Nothing to update.[/red]"); raise typer.Exit()
     new_cfg = ibex.createNewConfig(upd); _save_cfg(new_cfg)
@@ -313,13 +313,13 @@ def _menu_loop() -> None:
                 rot = typer.prompt("rotate (true/false)", default="")
                 cp = typer.prompt("central_point", default="")
                 mp = typer.prompt("meridian_point", default="")
-                an = typer.prompt("allow_negative_values (true/false)", default="")
+                an = typer.prompt("show_negative_values (true/false)", default="")
                 upd: dict = {"map_accuracy": ma,
                              "max_l_to_cache": ml,
                              "rotate": rot,
                              "central_point": cp,
                              "meridian_point": mp,
-                             "allow_negative_values": an
+                             "show_negative_values": an
                              }
                 formatted_cfg = mapper.handler.formatConfigToPythonDatastructures(upd)
                 # if ma: upd["map_accuracy"] = int(ma)
@@ -328,7 +328,7 @@ def _menu_loop() -> None:
                 # if cp: upd["central_point"] = cp
                 # if mp: upd["meridian_point"] = mp
                 # if an.lower() in {"true", "false"}:
-                formatted_cfg["allow_negative_values"] = an.lower() == "true"
+                formatted_cfg["show_negative_values"] = an.lower() == "true"
                 if upd:
                     SESSION_CFG = ibex.createNewConfig(formatted_cfg)
                     console.print("[green]Config updated until exiting the program.[/green]")

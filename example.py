@@ -10,7 +10,8 @@ ibex.generateSingleMapFromGivenFilePath(filepath)
 # filter out all of negative values.
 ibex.setDefaultConfig(ibex.createNewConfig({
     "map_accuracy": 440,
-    "allow_negative_values": False
+    ""
+    "show_negative_values": False
 }))
 
 # And generate
@@ -35,7 +36,7 @@ ibex.resetConfigToDefaultConfig()
 
 ibex.setDefaultConfig(ibex.createNewConfig({
     "map_accuracy": 440,
-    "allow_negative_values": False
+    "show_negative_values": False
 }))
 # And add our first point, that will be a blue x without a name on (-70, 30)
 ibex.addPoint("Testing point 1", (-70, 30), "b", False, "o", True)
@@ -86,7 +87,7 @@ custom_config = ibex.createNewConfig({
         "rotate": True,
         "central_point": (100, 0),
         "meridian_point": (35, -42),
-        "allow_negative_values": False,
+        "show_negative_values": False,
         "map_features_type_checking": True
 })
 

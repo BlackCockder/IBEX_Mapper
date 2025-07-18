@@ -139,7 +139,7 @@ class Handler:
             "rotate": bool,
             "central_point": tuple[float, float],
             "meridian_point": tuple[float, float],
-            "allow_negative_values": bool,
+            "show_negative_values": bool,
             "map_features_type_checking": bool
         }
 
@@ -312,7 +312,7 @@ class Handler:
             "map_accuracy",
             "max_l_to_cache",
             "rotate",
-            "allow_negative_values",
+            "show_negative_values",
             "central_point",
             "meridian_point",
             "map_features_type_checking"
@@ -351,8 +351,8 @@ class Handler:
                 raise ValueError("Rotate must be a boolean.")
 
         # Asserts that the setting about allowing negative values is boolean.
-        if "allow_negative_values" in config:
-            allow_negative_values = config["allow_negative_values"]
+        if "show_negative_values" in config:
+            allow_negative_values = config["show_negative_values"]
             if isinstance(allow_negative_values, str):
                 if allow_negative_values.lower() not in ("true", "false"):
                     raise ValueError("Allow negative values must be a boolean or a string 'True'/'False'.")
