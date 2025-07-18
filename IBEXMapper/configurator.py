@@ -5,7 +5,8 @@ from .calculator import Calculator
 
 class Configurator:
     """
-    This class is responsible for building both rotations and handling elliptical coordinates edge cases (in calculations).
+    This class is responsible for building both rotations and handling elliptical coordinates
+    edge cases (in calculations).
     """
     def __init__(self, calculator: Calculator):
         self.calculator = calculator
@@ -32,7 +33,8 @@ class Configurator:
         new_central_vector = self.correctEllipticalVectorsEdgesCases(new_central_vector)
 
         # Convert and normalize the vector in cartesian
-        target_vec = np.array(self.calculator.convertSphericalToCartesian(np.deg2rad(new_central_vector[0]), np.deg2rad(new_central_vector[1])))
+        target_vec = np.array(self.calculator.convertSphericalToCartesian(
+            np.deg2rad(new_central_vector[0]), np.deg2rad(new_central_vector[1])))
         target_vec = target_vec / np.linalg.norm(target_vec)
 
         # Uses scipy.spatial.transform.Rotation to directly calculate the rotation matrix.
@@ -68,7 +70,8 @@ class Configurator:
         meridian_vector = self.correctEllipticalVectorsEdgesCases(meridian_vector)
 
         # Convert and normalize the vector in cartesian
-        meridian_vector_in_cartesian = self.calculator.convertSphericalToCartesian(np.deg2rad(meridian_vector[0]), np.deg2rad(meridian_vector[1]))
+        meridian_vector_in_cartesian = self.calculator.convertSphericalToCartesian(
+            np.deg2rad(meridian_vector[0]), np.deg2rad(meridian_vector[1]))
         meridian_vector_in_cartesian /= np.linalg.norm(meridian_vector_in_cartesian)
 
         # Rotate the vector using central rotation
