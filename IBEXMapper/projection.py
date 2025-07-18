@@ -245,17 +245,17 @@ class Projection:
         for parallel_step in latitude_graticule_space:
             lon_line = np.linspace(-np.pi, np.pi, n_seg)
             lat_line = np.full_like(lon_line, parallel_step)
-            lon_r, lat_r = self.rotatePointLonLatCoordinates(lon_line, lat_line, rotation_matrix)
-            lon_r, lat_r = self.cutDataForMollweideProjection(lon_r, lat_r)
-            ax.plot(-lon_r, lat_r, lw=.4, color='grey')
-
+            lon_r, lat_r = self.rotatePointLonLatCoordinates(lon_line, lat_line, R_mat)
+            lon_r, lat_r = self.cutDataForMolleweideProjeciton(lon_r, lat_r)
+            ax.plot(-lon_r, lat_r, lw=.4, color='grey', zorder=3)
+            
         # Drawing all latitude meridians
         for lon0 in np.deg2rad(np.arange(-180, 181, lon_step)):
             lat_line = np.linspace(-np.pi / 2, np.pi / 2, n_seg)
             lon_line = np.full_like(lat_line, lon0)
-            lon_r, lat_r = self.rotatePointLonLatCoordinates(lon_line, lat_line, rotation_matrix)
-            lon_r, lat_r = self.cutDataForMollweideProjection(lon_r, lat_r)
-            ax.plot(-lon_r, lat_r, lw=.4, color='grey')
+            lon_r, lat_r = self.rotatePointLonLatCoordinates(lon_line, lat_line, R_mat)
+            lon_r, lat_r = self.cutDataForMolleweideProjeciton(lon_r, lat_r)
+            ax.plot(-lon_r, lat_r, lw=.4, color='grey', zorder=3)
 
     def addPointsToMap(self, ax: Axes, rotate: bool, final_rotation: np.ndarray) -> None:
         """
@@ -271,7 +271,6 @@ class Projection:
 
         A 3x3 rotation matrix to apply to the point coordinates.
         """
-
         points = self.handler.getPointsList()
 
         for point in points:
@@ -287,8 +286,7 @@ class Projection:
                 'color': color,
                 'zorder': 9
             }
-
-            # Allows an option to add a hollow circle
+            
             if hollow:
                 plot_kwargs['markerfacecolor'] = 'none'
 
@@ -460,7 +458,7 @@ class Projection:
                 x, y = self.rotatePointLonLatCoordinates(np.array([lon_rad]), np.array([lat_rad]), final_rotation)
             else:
                 x, y = np.array([lon_rad]), np.array([lat_rad])
-            ax.text(-x[0], y[0], label, fontsize=6, ha='center', va='bottom', color='white', zorder=7)
+            ax.text(-x[0], y[0], label, fontsize=6, ha='center', va='bottom', color='white', zorder=4)
 
         # Add labeled degree points along Meridian (lon = 0°)
 
@@ -478,4 +476,4 @@ class Projection:
                 x, y = self.rotatePointLonLatCoordinates(np.array([lon_rad]), np.array([lat_rad]), final_rotation)
             else:
                 x, y = np.array([lon_rad]), np.array([lat_rad])
-            ax.text(-x[0], y[0], label, fontsize=6, ha='left', va='center', color='white', zorder=7)
+            ax.text(-x[0], y[0], label, fontsize=6, ha='left', va='center', color='white', zorder=4)
