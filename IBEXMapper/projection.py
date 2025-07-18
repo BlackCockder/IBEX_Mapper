@@ -106,8 +106,8 @@ class Projection:
         pcm = ax.pcolormesh(lon, lat, heatmap_data, cmap=selected_cmap, shading="auto",
                             rasterized=True)
         cbar = fig.colorbar(pcm, ax=ax, orientation="horizontal", pad=0.05)
-        cbar.set_label(r'ENA flux (cm$^{-2}$s$^{-1}$sr$^{-1}$keV$^{-1}$)', fontsize=15)
-        cbar.ax.tick_params(labelsize=15)
+        cbar.set_label(r'ENA flux (cm$^{-2}$s$^{-1}$sr$^{-1}$keV$^{-1}$)', fontsize=16)
+        cbar.ax.tick_params(labelsize=16)
 
         # Adds Central and Meridian Point to the map
         self.addPointsToMap(ax, rotate, final_rotation)
