@@ -87,8 +87,6 @@ class Projection:
         else:
             final_rotation = rotation2 @ rotation1
 
-
-
         if rotate:
             self.drawGraticuleOnMap(ax, final_rotation)
         else:
