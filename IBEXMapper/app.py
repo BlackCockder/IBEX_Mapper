@@ -96,7 +96,7 @@ class IBEXMapper:
             central_rotation = self.configurator.buildCenteringRotation(config["central_point"])
 
             # If central and meridian points are the same, do only the first rotation.
-            if np.allclose(config["central_point"], config["meridian_point"]):
+            if np.allclose(config["central_point"], config["meridian_point"]) or np.allclose(config["meridian_point"], [0.0, 0.0]):
 
                 # Why we transpose will be explained in few next lines.
                 main_rotation = central_rotation.T
@@ -105,7 +105,7 @@ class IBEXMapper:
                 # Build the second rotation.
                 meridian_rotation = self.configurator.buildMeridianRotation(config["meridian_point"], central_rotation)
 
-                # Combine rotations and transpose (again, why we transpose will be explained in a second.
+                # Combine rotations and transpose (again, why we transpose will be explained in a second).
                 main_rotation = (meridian_rotation @ central_rotation).T
 
             # Rotate the grid by transposed combined rotation.

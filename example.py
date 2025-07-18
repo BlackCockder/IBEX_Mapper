@@ -10,7 +10,6 @@ ibex.generateSingleMapFromGivenFilePath(filepath)
 # filter out all of negative values.
 ibex.setDefaultConfig(ibex.createNewConfig({
     "map_accuracy": 440,
-    ""
     "show_negative_values": False
 }))
 
@@ -21,7 +20,6 @@ ibex.generateSingleMapFromGivenFilePath(filepath)
 ibex.setDefaultConfig(ibex.createNewConfig({
     "rotate": True,
     "central_point": (-70, 0),
-    "meridian_point": (-70, 0),
 }))
 ibex.generateSingleMapFromGivenFilePath(filepath)
 
