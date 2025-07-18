@@ -139,6 +139,7 @@ class Handler:
             "central_point": tuple[float, float],
             "meridian_point": tuple[float, float],
             "allow_negative_values": bool,
+            "map_features_type_checking": bool
         }
 
         # Initializing formatted config dictionary.
@@ -311,7 +312,8 @@ class Handler:
             "rotate",
             "allow_negative_values",
             "central_point",
-            "meridian_point"
+            "meridian_point",
+            "map_features_type_checking"
         }
 
         # Asserts that a given config only contains config dictionary keys.
@@ -354,6 +356,15 @@ class Handler:
                     raise ValueError("Allow negative values must be a boolean or a string 'True'/'False'.")
             elif not isinstance(allow_negative_values, bool):
                 raise ValueError("Allow negative values must be a boolean.")
+
+        # Asserts that a given type checking parameter is boolean.
+        if "map_features_type_checking" in config:
+            map_features_type_checking = config["map_features_type_checking"]
+            if isinstance(map_features_type_checking, str):
+                if map_features_type_checking.lower() not in ("true", "false"):
+                    raise ValueError("Map features type checking must be a boolean or a string 'True'/'False'.")
+            elif not isinstance(map_features_type_checking, bool):
+                raise ValueError("Map features type checking must be a boolean.")
 
         # Asserts that given points are valid elliptical points.
         if "central_point" in config:
@@ -542,7 +553,7 @@ class Handler:
 
         """
         # List of acceptable color palette inputs.
-        colors = ["batlow", "batlowK", "batlowW", "viridis", "magma"]
+        colors = ["batlow", "batlowK", "batlowW", "viridis", "magma", "plasma", "inferno", "cividis"]
 
         # Asserts that a given color is a string.
         if not isinstance(heatmap_color, str):

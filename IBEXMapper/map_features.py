@@ -161,6 +161,8 @@ class MapFeatures:
         and a message will be printed.
         """
 
+        self.handler.assertCircle(coordinates, alpha, color, linestyle)
+
         with open(self.FEATURES_FILE, 'r') as f:
             data = json.load(f)
 
@@ -232,7 +234,7 @@ class MapFeatures:
                    coordinates: tuple[float, float],
                    color: str,
                    font_size: int,
-                   tilt_angle = 0) -> None:
+                   tilt_angle: float) -> None:
         """
         Add text annotation to the map.
 
@@ -255,6 +257,8 @@ class MapFeatures:
         If a text with the same name already exists, it will not be added
         and a message will be printed.
         """
+
+        self.handler.assertText(coordinates, color, font_size, tilt_angle)
 
         with open(self.FEATURES_FILE, 'r') as f:
             data = json.load(f)
@@ -344,7 +348,7 @@ class MapFeatures:
         with open(self.FEATURES_FILE, 'r') as f:
             data = json.load(f)
 
-        data["heatmap_color_palette"] = color
+        data["heatmap_color"] = color
 
         with open(self.FEATURES_FILE, 'w') as f:
             json.dump(data, f, indent=4)
@@ -353,7 +357,7 @@ class MapFeatures:
         with open(self.FEATURES_FILE, 'r') as f:
             data = json.load(f)
 
-        data["heatmap_color_palette"] = "magma"
+        data["heatmap_color"] = "magma"
 
         with open(self.FEATURES_FILE, 'w') as f:
             json.dump(data, f, indent=4)
