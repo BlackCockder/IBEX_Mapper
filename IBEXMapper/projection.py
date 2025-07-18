@@ -162,7 +162,7 @@ class Projection:
             lat_line = np.full_like(lon_line, parallel_step)
             lon_r, lat_r = self.rotatePointLonLatCoordinates(lon_line, lat_line, R_mat)
             lon_r, lat_r = self.cutDataForMolleweideProjeciton(lon_r, lat_r)
-            ax.plot(-lon_r, lat_r, lw=.4, color='grey')
+            ax.plot(-lon_r, lat_r, lw=.4, color='grey', zorder=3)
 
         # meridians
         for lon0 in np.deg2rad(np.arange(-180, 181, lon_step)):
@@ -170,14 +170,13 @@ class Projection:
             lon_line = np.full_like(lat_line, lon0)
             lon_r, lat_r = self.rotatePointLonLatCoordinates(lon_line, lat_line, R_mat)
             lon_r, lat_r = self.cutDataForMolleweideProjeciton(lon_r, lat_r)
-            ax.plot(-lon_r, lat_r, lw=.4, color='grey')
+            ax.plot(-lon_r, lat_r, lw=.4, color='grey', zorder=3)
 
     def addPointsToMap(self, ax: matplotlib.axes.Axes, rotate: bool, final_rotation: np.ndarray) -> None:
         """
         Loads points from JSON file and parses their coordinates into np.array format.
-        Returns a list of dictionaries with 'name', 'coordinates' as np.array([lon, lat]), and 'color' as string.
+        Plots them on the map, with optional rotation. Supports hollow-style markers.
         """
-
         points = self.handler.getPointsList()
 
         for point in points:
@@ -186,26 +185,43 @@ class Projection:
             color = point["color"]
             show_text = point["show_text"]
             point_type = point["point_type"]
-            if rotate:
-                point_in_cartesian_coordinates = self.calculator.convertSphericalToCartesian(np.deg2rad(spherical[0]), np.deg2rad(spherical[1]))
+            hollow = point["hollow"]
 
-                rotated_cartesian = final_rotation @ point_in_cartesian_coordinates
+            plot_kwargs = {
+                'markersize': 5,
+                'color': color,
+                'zorder': 9
+            }
+
+            if hollow:
+                plot_kwargs['markerfacecolor'] = 'none'
+
+            if rotate:
+                point_in_cartesian = self.calculator.convertSphericalToCartesian(
+                    np.deg2rad(spherical[0]), np.deg2rad(spherical[1])
+                )
+
+                rotated_cartesian = final_rotation @ point_in_cartesian
 
                 lon_spherical, lat_spherical = self.calculator.convertCartesianToSpherical(
                     np.array([rotated_cartesian[0]]),
                     np.array([rotated_cartesian[1]]),
                     np.array([rotated_cartesian[2]])
                 )
-                ax.plot(-lon_spherical[0], lat_spherical[0], point_type, markersize=5, color=color, zorder=6)
+
+                ax.plot(-lon_spherical[0], lat_spherical[0], point_type, **plot_kwargs)
+
                 if show_text:
-                    ax.text(-lon_spherical[0], lat_spherical[0], f' {name}', fontsize=7, color=color, zorder=6)
+                    ax.text(-lon_spherical[0], lat_spherical[0], f' {name}', fontsize=7, color=color, zorder=9)
+
             else:
-                spherical_lon_in_radians = np.deg2rad(spherical[0])
-                spherical_lat_in_radians = np.deg2rad(spherical[1])
-                ax.plot(-spherical_lon_in_radians, spherical_lat_in_radians, point_type, markersize=5, color=color, zorder=6)
+                lon_rad = np.deg2rad(spherical[0])
+                lat_rad = np.deg2rad(spherical[1])
+
+                ax.plot(-lon_rad, lat_rad, point_type, **plot_kwargs)
+
                 if show_text:
-                    ax.text(-spherical_lon_in_radians, spherical_lat_in_radians, f' {name}', fontsize=7, color=color, zorder=6)
-            return
+                    ax.text(-lon_rad, lat_rad, f' {name}', fontsize=7, color=color, zorder=9)
 
     def addCirclesToMap(self, ax: matplotlib.axes.Axes, rotate: bool, final_rotation: np.ndarray) -> None:
 
@@ -307,7 +323,7 @@ class Projection:
                 x, y = self.rotatePointLonLatCoordinates(np.array([lon_rad]), np.array([lat_rad]), final_rotation)
             else:
                 x, y = np.array([lon_rad]), np.array([lat_rad])
-            ax.text(-x[0], y[0], label, fontsize=6, ha='center', va='bottom', color='white', zorder=7)
+            ax.text(-x[0], y[0], label, fontsize=6, ha='center', va='bottom', color='white', zorder=4)
 
         # Add labeled degree points along Meridian (lon = 0°)
 
@@ -325,4 +341,4 @@ class Projection:
                 x, y = self.rotatePointLonLatCoordinates(np.array([lon_rad]), np.array([lat_rad]), final_rotation)
             else:
                 x, y = np.array([lon_rad]), np.array([lat_rad])
-            ax.text(-x[0], y[0], label, fontsize=6, ha='left', va='center', color='white', zorder=7)
+            ax.text(-x[0], y[0], label, fontsize=6, ha='left', va='center', color='white', zorder=4)

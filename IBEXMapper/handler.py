@@ -178,6 +178,7 @@ class Handler:
             "points": {
                 "coordinates": tuple[float, float],
                 "show_text": bool,
+                "hollow": bool
             },
             "circles": {
                 "coordinates": tuple[float, float],
@@ -374,7 +375,7 @@ class Handler:
         if "meridian_point" in config:
             self.assertCoordinates(config["meridian_point"], "Meridian point")
 
-    def assertPoint(self, coordinates: any, color: any, show_text: any, point_type: any) -> None:
+    def assertPoint(self, coordinates: any, color: any, show_text: any, point_type: any, hollow: any) -> None:
         """
         Method that asserts that given point is valid point to add to the map.
         If input is not valid, it raises TypeError or ValueError.
@@ -390,6 +391,9 @@ class Handler:
 
         :param point_type:
         A string representing the type of point, strongly associated with matplotlib.pyplot.
+
+        :param hollow:
+        A boolean representing whether the point should be hollow or not.
 
         """
 
@@ -417,6 +421,10 @@ class Handler:
             raise TypeError("point_type must be a string.")
         if point_type not in point_types:
             raise ValueError(f"Invalid point_type '{point_type}'. Must be one of: {point_types}")
+
+        # Asserts that hollow is a boolean.
+        if not isinstance(hollow, bool):
+            raise TypeError("hollow must be a boolean.")
 
     def assertCircle(self, coordinates: any, alpha: any, color: any, linestyle: any) -> None:
         """
