@@ -10,9 +10,10 @@ class Calculator:
     def __init__(self):
         pass
 
-    def calculateMainMatrixFromData(self, data: np.ndarray, spherical_harmonics_values_matrix: np.ndarray, dpi: int) -> np.ndarray:
+    def calculateMainMatrixFromData(self, data: np.ndarray, spherical_harmonics_values_matrix: np.ndarray, dpi: int) \
+            -> np.ndarray:
         """
-        Function that calculates main heatmap matrix by vectorized multiplying coefficient with relative value from
+        Method that calculates main heatmap matrix by vectorized multiplying coefficient with relative value from
         spherical harmonics value matrix.
 
         :param data:
@@ -91,22 +92,22 @@ class Calculator:
 
         # We need to filter out the invalid spherical harmonics, double for loop does the job.
         for l in range(target_max_l + 1):
-                for m in range(-l, l + 1):
+            for m in range(-l, l + 1):
 
-                    # Here we transform the spherical harmonics from complex plane to real plane using helper method.
-                    spherical_harmonics_array_on_real_plane.append(
-                        self.filterComplexNumbersFromSphericalHarmonics(
-                            m,
-                            unfiltered_array[l][m],
-                            unfiltered_array[l][-m])
-                        .real)
+                # Here we transform the spherical harmonics from complex plane to real plane using helper method.
+                spherical_harmonics_array_on_real_plane.append(
+                    self.filterComplexNumbersFromSphericalHarmonics(
+                        m,
+                        unfiltered_array[l][m],
+                        unfiltered_array[l][-m])
+                    .real)
 
-                    # Updating progress of filtering
-                    completed_iterations += 1
-                    current_progress = int((completed_iterations / total_iterations) * 100)
-                    if current_progress >= progress_checkpoint + 5:
-                        progress_checkpoint = current_progress - (current_progress % 5)
-                        print(f"Filtering progress: {progress_checkpoint}%")
+                # Updating progress of filtering
+                completed_iterations += 1
+                current_progress = int((completed_iterations / total_iterations) * 100)
+                if current_progress >= progress_checkpoint + 5:
+                    progress_checkpoint = current_progress - (current_progress % 5)
+                    print(f"Filtering progress: {progress_checkpoint}%")
 
         # Return the list.
         return spherical_harmonics_array_on_real_plane
@@ -240,7 +241,8 @@ class Calculator:
         lon = np.linspace(np.pi, -np.pi, dpi)
 
         # Initialize the interpolator with data and initial lat and lon.
-        interpolator = RegularGridInterpolator((lat, lon), data_to_interpolate, method='linear', bounds_error=False, fill_value=np.nan)
+        interpolator = RegularGridInterpolator((lat, lon), data_to_interpolate,
+                                               method='linear', bounds_error=False, fill_value=np.nan)
 
         # Stack the rotated_lat and rotated_lon meshes into a (N, N) size matrix of 2D vectors.
         rotated_vectors = np.stack((rotated_lat.ravel(), rotated_lon.ravel()), axis=-1)
@@ -299,7 +301,7 @@ class Calculator:
                 np.sin(alpha_in_rad) * (
                         np.cos(discrete_circle_linspace) * rotating_vector[:, np.newaxis] +
                         np.sin(discrete_circle_linspace) * main_vector[:, np.newaxis]
-            )
+                )
         )
 
         # We convert back to spherical coordinates.
