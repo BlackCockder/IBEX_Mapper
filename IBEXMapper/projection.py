@@ -73,9 +73,8 @@ class Projection:
         lat = np.linspace(np.pi / 2, -np.pi / 2, dpi)
         lon, lat = np.meshgrid(lon, lat)
 
-        fig = plt.figure(figsize=(8, 6))
+        fig = plt.figure(figsize=(8, 5))
         ax = fig.add_subplot(111, projection="mollweide")
-        ax.set_title("IBEX Mapper")
 
         rotation1 = self.configurator.buildCenteringRotation(central_coords)
         rotation2 = self.configurator.buildMeridianRotation(meridian_coords, rotation1)
@@ -83,29 +82,16 @@ class Projection:
 
         final_rotation = np.array([])
 
-        if np.allclose(central_coords, meridian_coords):
+        if np.allclose(central_coords, meridian_coords) or np.allclose(meridian_coords, [0.0, 0.0]) :
             final_rotation = rotation1
         else:
             final_rotation = rotation2 @ rotation1
-
-
 
         if rotate:
             self.drawGraticuleOnMap(ax, final_rotation)
         else:
             self.drawGraticuleOnMap(ax, np.eye(3))
 
-        at = AnchoredText(
-            "2025 IBEX Mapper",
-            loc="lower right",
-            prop=dict(size=8),
-            frameon=True,
-            pad=0.3,
-            borderpad=0.4
-        )
-        at.patch.set_facecolor("white")
-        at.patch.set_edgecolor("none")
-        ax.add_artist(at)
         plt.tight_layout()
         ax.set_xticks([])
         ax.set_yticks([])
@@ -117,8 +103,8 @@ class Projection:
         pcm = ax.pcolormesh(lon, lat, heatmap_data, cmap=selected_cmap, shading="auto",
                             rasterized=True)
         cbar = fig.colorbar(pcm, ax=ax, orientation="horizontal", pad=0.05)
-        cbar.set_label(r'ENA flux (cm$^{-2}$s$^{-1}$sr$^{-1}$keV$^{-1}$)', fontsize=20)
-        cbar.ax.tick_params(labelsize=15)
+        cbar.set_label(r'ENA flux (cm$^{-2}$s$^{-1}$sr$^{-1}$keV$^{-1}$)', fontsize=16)
+        cbar.ax.tick_params(labelsize=16)
 
         # Adds Central and Meridian Point to the map
         self.addPointsToMap(ax, rotate, final_rotation)
