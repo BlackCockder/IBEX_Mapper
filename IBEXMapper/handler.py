@@ -11,7 +11,8 @@ class Handler:
     This class is responsible for using logic from calculator to build the final heatmap matrix
     and for sanitizing user given data.
     """
-    # Initializing map_features folder using os package to ensure OS compatibility.
+    
+    # Initializing the map_features folder using os package to ensure OS compatibility.
     CONFIG_DIR = "config"
     CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
     FEATURES_DIR = "map_features"
@@ -25,14 +26,14 @@ class Handler:
         Main function that generates data for heatmap before configuration is applied.
 
         :param dpi:
-        Resolution of the map. Ranges from 0 to infinity but generally speaking the intended accuracy is around 720.
+        Resolution of the map. Ranges from 0 to infinity, but generally speaking, the intended accuracy is around 720.
 
         :param target_max_l:
         Caching parameter (related to spherical harmonics). Ranges from 0 to infinity. Determines how deep will
-        calculator calculate the spherical harmonics for. Intended value is one that user sets as default in the config.
+        calculator calculate the spherical harmonics for. The intended value is one that the user sets as default in the config.
 
         :param data:
-        Matrix of (N, 4) size. Generally used for accessing 3rd column where the coefficients are located and for
+        Matrix of (N, 4) size. Generally used for accessing the 3rd column where the coefficients are located and for
         cutting the cached spherical harmonics data to match the row length for vectorized matrix multiplication in
         calculator.
 
@@ -72,7 +73,7 @@ class Handler:
 
             print(f"Cached spherical harmonics for DPI: {dpi} and L: {target_max_l}")
 
-            # Same assumption here as in line 51.
+            # The same assumption here as in line 51.
             cut_spherical_harmonics = spherical_harmonics_matrices[:data.shape[0]]
 
             print("Initializing heatmap data calculation...")
@@ -89,7 +90,7 @@ class Handler:
     def loadSphericalHarmonicsFromCache(self, file_path: Path) -> np.ndarray:
         return np.load(file_path, allow_pickle=True)
 
-    def stringlifyValue(self, value: any) -> str or dict[any: str] or list[str]:
+    def stringifyValue(self, value: any) -> str or dict[any: str] or list[str]:
         """
         Recursive method that converts all values in a dictionary or list of dictionaries
         to their string representations. Supports tuples, booleans, ints and floats.
@@ -98,15 +99,15 @@ class Handler:
         Value to convert. It supports lists of dictionaries even.
 
         :returns:
-        Returns stringnified value. Can be a dictionary or list.
+        Returns stringified value. Can be a dictionary or list.
         """
 
         # Brute force all potential values.
         if isinstance(value, dict):
-            return {k: self.stringlifyValue(v) for k, v in value.items()}
+            return {k: self.stringifyValue(v) for k, v in value.items()}
 
         if isinstance(value, list):
-            return [self.stringlifyValue(v) for v in value]
+            return [self.stringifyValue(v) for v in value]
 
         if isinstance(value, tuple):
             return str(value)
@@ -121,11 +122,11 @@ class Handler:
 
     def formatConfigToPythonDatastructures(self, config: dict) -> dict:
         """
-        Method that formats the stringlified config dictionary into config dictionary with correct python datatypes.
+        Method that formats the stringified config dictionary into config dictionary with correct python datatypes.
 
         :param config:
         Given config to format.
-        Note: It is assumed that the config is valid config dictionary.
+        Note: It is assumed that the config is a valid config dictionary.
 
         :return:
         Returns config dictionary formatted to correct python datastructures.
@@ -145,7 +146,7 @@ class Handler:
         # Initializing formatted config dictionary.
         formatted_config = {}
 
-        # Loop over both key and value and try to parse it into correct datatype using other handler method.
+        # Loop over both key and value and try to parse it into the correct datatype using another handler method.
         for key, value in config.items():
 
             # Get the expected type from schema
@@ -167,8 +168,8 @@ class Handler:
         """
         Formats the stringified map features JSON into proper Python datatypes.
 
-        :param features: Map features dictionary.
-        :return: Parsed map features dictionary.
+        :param features: Map features a dictionary.
+        :return: The parsed map features a dictionary.
         """
 
         # Defines feature schema.
@@ -190,7 +191,7 @@ class Handler:
             "heatmap_scale": tuple[float, float],
         }
 
-        # Initializing empty map features dictionary.
+        # Initializing an empty map features a dictionary.
         formatted_map_features = {}
 
         # Processing the non-array features first.
@@ -206,7 +207,7 @@ class Handler:
 
                 except Exception as e:
 
-                    # Also again, this shouldn't fire once if parser is written correctly.
+                    # Also again, this shouldn't fire once if the parser is written correctly.
                     raise ValueError(f"Error parsing root key '{key}' with value '{value}': {e}")
 
         # Now we process all the arrays in the map features dictionary.
@@ -240,7 +241,7 @@ class Handler:
 
     def parseStringsToPythonDatastructures(self, value, expected_type) -> any:
         """
-        Method that parsed the validated, stringlified config dictionary values into correct values
+        Method that parsed the validated, stringified config dictionary values into correct values
         with correct python datastructures.
 
         :param value:
@@ -272,7 +273,7 @@ class Handler:
             return value
 
     # ----------------------------------------------
-    # Getters for all the map feature related stuff.
+    # Getters for all the map features related stuff.
     # ----------------------------------------------
     def getMapFeatures(self) -> dict:
 
@@ -298,11 +299,11 @@ class Handler:
 
     def assertConfig(self, config: dict) -> None:
         """
-        Method that asserts every value associated with every key in given, non-valid config dictionary.
-        If input is not valid, raises TypeError or ValueError.
+        Method that asserts every value associated with every key in a given, non-valid config dictionary.
+        If input is not valid, it raises TypeError or ValueError.
 
         :param config:
-        Config dictionary with keys and values to check.
+        Config a dictionary with keys and values to check.
         """
 
         # List of all valid keys to check whether the config dictionary doesn't have any unnecessary keys.
@@ -313,10 +314,10 @@ class Handler:
             "allow_negative_values",
             "central_point",
             "meridian_point",
-            "map_features_type_checking",
+            "map_features_type_checking"
         }
 
-        # Asserts that given config only contains config dictionary keys.
+        # Asserts that a given config only contains config dictionary keys.
         for key in config:
             if key not in valid_keys:
                 raise TypeError(f"Unknown configuration key: {key}")
@@ -348,7 +349,7 @@ class Handler:
             elif not isinstance(rotate, bool):
                 raise ValueError("Rotate must be a boolean.")
 
-        # Asserts that setting about allowing negative values is boolean.
+        # Asserts that the setting about allowing negative values is boolean.
         if "allow_negative_values" in config:
             allow_negative_values = config["allow_negative_values"]
             if isinstance(allow_negative_values, str):
@@ -357,7 +358,7 @@ class Handler:
             elif not isinstance(allow_negative_values, bool):
                 raise ValueError("Allow negative values must be a boolean.")
 
-        # Asserts that given type checking parameter is boolean.
+        # Asserts that a given type checking parameter is boolean.
         if "map_features_type_checking" in config:
             map_features_type_checking = config["map_features_type_checking"]
             if isinstance(map_features_type_checking, str):
@@ -375,8 +376,8 @@ class Handler:
 
     def assertPoint(self, coordinates: any, color: any, show_text: any, point_type: any) -> None:
         """
-        Method that asserts that given point is valid point to add to map.
-        If input is not valid, raises TypeError or ValueError.
+        Method that asserts that given point is valid point to add to the map.
+        If input is not valid, it raises TypeError or ValueError.
 
         :param coordinates:
         A tuple[float, float] containing elliptical coordinates of the point.
@@ -401,7 +402,7 @@ class Handler:
         # Asserts that coordinates are valid elliptical coordinates (lon, lat).
         self.assertCoordinates(coordinates, "Point coordinates")
 
-        # Asserts that color must be a string and must be in predefined list.
+        # Asserts that color must be a string and must be in a predefined list.
         if not isinstance(color, str):
             raise TypeError("color must be a string.")
         if color not in colors:
@@ -411,7 +412,7 @@ class Handler:
         if not isinstance(show_text, bool):
             raise TypeError("show_text must be a boolean.")
 
-        # Asserts that point_type is a string and is in predefined list.
+        # Asserts that point_type is a string and is in a predefined list.
         if not isinstance(point_type, str):
             raise TypeError("point_type must be a string.")
         if point_type not in point_types:
@@ -419,16 +420,16 @@ class Handler:
 
     def assertCircle(self, coordinates: any, alpha: any, color: any, linestyle: any) -> None:
         """
-        Method that asserts that the given circle is valid circle to add to map.
-        If input is not valid, raises TypeError or ValueError.
+        Method that asserts that the given circle is a valid circle to add to the map.
+        If input is not valid, it raises TypeError or ValueError.
 
         :param coordinates:
-        A tuple[float, float] containing elliptical coordinates of center of the circle.
+        A tuple[float, float] containing elliptical coordinates of the center of the circle.
 
         :param alpha:
         A float indicating the width of the circle. Its range is [0, 180].
-        Both 0 and 180 are technically valid but will generate point, not a circle (all points will stack in one place).
-        Note: It is in degrees and 90 degrees represents Great Circle (largest radius).
+        Both 0 and 180 are technically valid but will generate a point, not a circle (all points will stack in one place).
+        Note: It is in degrees and 90 degrees represent the Great Circle (the largest radius).
 
         :param color:
         A string representing the color of the circle.
@@ -465,8 +466,8 @@ class Handler:
 
     def assertText(self, coordinates: any, color: any, font_size: any, tilt_angle: any) -> None:
         """
-        Method that asserts that given text is valid text to add to map.
-        If input is not valid, raises TypeError or ValueError.
+        Method that asserts that a given text is a valid text to add to a map.
+        If input is not valid, it raises TypeError or ValueError.
 
         :param coordinates:
         A tuple[float, float] containing the coordinates of the text.
@@ -475,8 +476,8 @@ class Handler:
         A string representing the color of the text.
 
         :param font_size:
-        A float indicating the size of the font. There is minimum and maximum font size.
-
+        A float indicating the size of the font. There is a minimum and maximum font size.
+        
         :param tilt_angle:
         A float indicating the tilt angle of the text. Range is [0, 360]. Rotates counterclockwise.
 
@@ -497,14 +498,14 @@ class Handler:
             raise TypeError("color must be a string.")
         if color not in colors:
             raise ValueError(f"Invalid color '{color}'. Must be one of: {colors}")
-
-        # Asserts that font size is a positive integer and is given within defined range.
+            
+        # Asserts that font size is a positive integer and is given within a defined range.
         if not isinstance(font_size, int):
             raise TypeError("font_size must be an integer.")
         if not (font_size_min <= font_size <= font_size_max):
             raise ValueError(f"font_size must be between {font_size_min} and {font_size_max}.")
-
-        # Asserts that tilt angle is a float (or int) in range [0, 360].
+         
+        # Asserts that a tilt angle is a float (or int) in range [0, 360].
         if not isinstance(tilt_angle, (float, int)):
             raise TypeError("tilt_angle must be a float or int.")
         if not (0 <= float(tilt_angle) <= 360):
@@ -513,13 +514,13 @@ class Handler:
     def assertHeatmapScale(self, heatmap_scale: any) -> None:
         """
         Method that asserts that the given heatmap scale is valid.
-        If input is not valid, raises TypeError or ValueError.
+        If input is not valid, it raises TypeError or ValueError.
 
         :param heatmap_scale:
         A tuple[float, float] that represents the heatmap scale.
-        First number must always be lesser than second number and both numbers cannot be equal to each other.
-        Note: (0, 0) tuple is valid, but will print warning that scale is not applied, since (0, 0)
-        is read by projection method as "Use automatic scaling generation" (which is default generation).
+        The first number must always be lesser than the second number, and both numbers cannot be equal to each other.
+        Note: (0, 0) tuple is valid, but will print a warning that scale is not applied, since (0, 0)
+        is read by the projection method as "Use automatic scaling generation" (which is the default generation).
 
         """
 
@@ -533,7 +534,7 @@ class Handler:
         if not all(isinstance(v, (float, int)) for v in (x, y)):
             raise TypeError("heatmap_scale must contain numeric (float or int) values.")
 
-        # Prints orange warning if (0, 0) is used.
+        # Prints an orange warning if (0, 0) is used.
         if (x, y) == (0, 0):
             print("\033[38;5;208mWarning: Custom heatmap scale given is (0, 0). "
                   "Projector therefore will use automatic scale selection.\033[0m")
@@ -546,27 +547,28 @@ class Handler:
     def assertHeatmapColor(self, heatmap_color: any) -> None:
         """
         Method that asserts that the given heatmap color is valid.
-        If input is not valid, raises TypeError or ValueError.
+        If input is not valid, it raises TypeError or ValueError.
 
         :param heatmap_color:
-        A string representing color palette of the heatmap.
+        A string representing the color palette of the heatmap.
 
         """
         # List of acceptable color palette inputs.
-        colors = ["batlow", "batlowK", "batlowW", "viridis", "magma"]
+        colors = ["batlow", "batlowK", "batlowW", "viridis", "magma", "plasma", "inferno", "cividis"]
 
-        # Asserts that given color is a string.
+        # Asserts that a given color is a string.
         if not isinstance(heatmap_color, str):
             raise TypeError("heatmap_color must be a string.")
 
-        # Asserts that given color is the list of color palettes.
+        # Asserts that a given color is the list of color palettes.
         if heatmap_color not in colors:
             raise ValueError(f"Invalid heatmap_color '{heatmap_color}'. Must be one of: {colors}")
 
     def assertCoordinates(self, coordinates: any, name: str) -> None:
         """
         Method that asserts that the given coordinates are valid elliptical coordinates.
-        If input is not valid, raises TypeError or ValueError.
+        If input is not valid, it raises TypeError or ValueError.
+
 
         :param coordinates:
         A tuple[float, float] containing the coordinates.

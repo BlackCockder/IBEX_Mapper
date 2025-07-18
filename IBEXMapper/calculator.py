@@ -7,6 +7,7 @@ class Calculator:
     """
     Class that is responsible for all number work on spheres, matrices, complex numbers and more.
     """
+
     def __init__(self):
         pass
 
@@ -17,32 +18,32 @@ class Calculator:
         spherical harmonics value matrix.
 
         :param data:
-        A (N, 4) matrix of data given by user.
+        A (N, 4) matrix of data given by the user.
 
         :param spherical_harmonics_values_matrix:
         A (dpi, dpi) size matrix of values for corresponding coefficients that will be multiplied with the coefficients.
 
         :param dpi:
         Final size of matrix (dpi, dpi).
-        Note: this parameter must always be the same for matrix given by :param spherical_harmonics_values_matrix: or
+        Note: this parameter must always be the same for a matrix given by :param spherical_harmonics_values_matrix: or
         else this will generate errors.
 
         :return:
         Returns the main matrix but also realigns it, so it has the same coordinate system as the one used in mollweide
-        projection. Refer to the projection function in Projection class to see the ranges of the (x, y) matrix of
+        projection. Refer to the projection function in the Projection class to see the ranges of the (x, y) matrix of
         coordinates.
         """
 
         print("Calculating heatmap data...")
 
-        # Assuming that 3rd column is always the column with coefficients
+        # Assuming that the 3rd column is always the column with coefficients
         coefficients = data[:, 2]
 
         # A tensor dot product to multiply the equivalent coefficients with equivalent spherical harmonics
         # Transposed to switch from (lat, lon) to (lon, lat) system that is used in this app.
         main_matrix = np.tensordot(coefficients, np.stack(spherical_harmonics_values_matrix), axes=1).T
 
-        # Necessary matrix realignment to match mollweide projection
+        # Necessary matrix realignment to match the mollweide projection
         final_matrix = np.roll(np.fliplr(main_matrix), shift=dpi // 2, axis=1)
 
         print("Heatmap data calculated")
@@ -51,10 +52,10 @@ class Calculator:
                             
     def calculateSphericalHarmonicsDataForSetDPI(self, dpi: int, target_max_l: int) -> list:
         """
-        Method that calculates all spherical harmonics up to given L border.
+        Method that calculates all spherical harmonics up to a given L border.
 
         :param dpi:
-        Parameter that defines raster size of final heatmap on mollweide projection, here used to generate discrete
+        Parameter that defines raster size of the final heatmap on mollweide projection, here used to generate discrete
         values of colatitude and latitude
 
         :param target_max_l:
@@ -68,7 +69,7 @@ class Calculator:
         """
 
         # Forms the discrete range of values for heatmap generation after.
-        # The larger dpi is, the larger raster size will the final projection of heatmap have.
+        # The larger dpi is, the larger raster size will the final projection of the heatmap have.
         colatitude, longitude = np.meshgrid(np.linspace(0, np.pi, dpi), np.linspace(0, 2 * np.pi, dpi))
 
         # Initializing the final list of spherical harmonics.
@@ -85,7 +86,7 @@ class Calculator:
 
         print("Filtering spherical harmonics...")
 
-        # Helping variables with showing percentage of calculations done. Agreed step is 5%.
+        # Helping variables with showing a percentage of calculations done. Agreed the step is 5%.
         total_iterations = sum(2 * l + 1 for l in range(target_max_l + 1))
         completed_iterations = 0
         progress_checkpoint = 0
@@ -117,7 +118,7 @@ class Calculator:
                                                    spherical_harmonic_positive: np.ndarray,
                                                    spherical_harmonic_negative: np.ndarray) -> np.ndarray:
         """
-        Helper method that takes current state of for loop in method calculateSphericalHarmonicsDataForSetDPI and
+        Helper method that takes the current state of for loop in method calculateSphericalHarmonicsDataForSetDPI and
         applies the equation of real plane transform to all spherical harmonics.
         Wikipedia link: https://en.wikipedia.org/wiki/Spherical_harmonics#Real_form
 
@@ -131,7 +132,7 @@ class Calculator:
         Negative value of currently calculated spherical harmonic.
 
         :return:
-        Returns transformed value onto real plane of the spherical harmonics.
+        Returns transformed value onto the real plane of the spherical harmonics.
         """
 
         # Same as in the formula.
@@ -154,7 +155,7 @@ class Calculator:
         lat = np.arcsin(z)
         lon = np.arctan2(y, x)
 
-        # To prevent out of bounds bug for points.
+        # To prevent out-of-bounds bug for points.
         if isinstance(y, float):
             if abs(y) < 1e-10:
                 lon = 0.0
@@ -167,7 +168,7 @@ class Calculator:
                              z_mesh: np.ndarray,
                              rotation: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
-        Method that rotates a mesh of coordinates in cartesian by given rotation.
+        Method that rotates a mesh of coordinates in cartesian by the given rotation.
 
         :param x_mesh:
         A (N, N) size matrix of X coordinate values.
@@ -194,7 +195,7 @@ class Calculator:
 
         # Apply the rotation
         # Note, we apply the rotation here with transposing because numpy allows vectorized
-        # matrix multiplications only when rotation matrix is on the "left side" of the equation.
+        # matrix multiplications only when the rotation matrix is on the "left side" of the equation.
         # So we need to transpose it.
         rotated_cartesian_coordinates_matrix = cartesian_coordinates_matrix @ rotation.T
 
@@ -213,7 +214,7 @@ class Calculator:
                                   rotated_lon: np.ndarray) -> np.ndarray:
         """
         Method that given the original data matrix and the new grid system uses linear interpolation to form
-        new value matrix that will be later projected in mollweide projection.
+        the new value matrix that will be later projected in mollweide projection.
         Note: Despite this app using (lon, lat) convention, (lat, lon) is used here because it is required in this order
         by linear grid interpolator.
 
@@ -221,14 +222,14 @@ class Calculator:
         A (N, N) shaped matrix with real value entries.
 
         :param rotated_lat:
-        Latitude part of new grid, as (N, N) size matrix of latitude coordinates.
+        Latitude part of the new grid, as (N, N) size matrix of latitude coordinates.
 
         :param rotated_lon:
-        Longitude part of new grid, as (N, N) size matrix of Longitude coordinates.
+        Longitude is part of the new grid, as (N, N) size matrix of Longitude coordinates.
 
         :return:
-        Returns a (N, N) shaped matrix with values, that comes from interpolating the initial data matrix with
-        new coordinate system.
+        Returns a (N, N) shaped matrix with values that come from interpolating the initial data matrix with
+        a new coordinate system.
         """
 
         print("Interpolating new heatmap data after rotation...")
@@ -247,7 +248,7 @@ class Calculator:
         # Stack the rotated_lat and rotated_lon meshes into a (N, N) size matrix of 2D vectors.
         rotated_vectors = np.stack((rotated_lat.ravel(), rotated_lon.ravel()), axis=-1)
 
-        # Use the interpolator to interpolate our new grid system with old grid system and its corresponding data to get
+        # Use the interpolator to interpolate our new grid system with the old grid system and its corresponding data to get
         # our new data.
         interpolated_data = interpolator(rotated_vectors).reshape(rotated_lat.shape)
 
@@ -263,8 +264,8 @@ class Calculator:
         The vector in elliptical coordinates that around whom will the circle be drawn.
 
         :param alpha:
-        Angle of deviation, corresponding to radius of said circle, in degrees.
-        Note: For 90 degrees, formed circle is a Great Circle.
+        Angle of deviation, corresponding to the radius of the said circle, in degrees.
+        Note: For 90 degrees, the formed circle is a Great Circle.
 
         :return:
         Returns discrete meshes of lat and lon values for circle generation. 360 points each.
@@ -284,7 +285,7 @@ class Calculator:
         # An arbitrary vector upon which the rotating vector will be built.
         basis_vector = np.array([0, 0, 1])
 
-        # We avoid illegal cross products.
+        # We avoid illegal cross-products.
         if np.allclose(circle_center_vector_in_cartesian, basis_vector):
             rotating_vector = np.array([1, 0, 0])
         else:
