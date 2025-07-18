@@ -73,7 +73,7 @@ class Projection:
         lat = np.linspace(np.pi / 2, -np.pi / 2, dpi)
         lon, lat = np.meshgrid(lon, lat)
 
-        fig = plt.figure(figsize=(8, 6))
+        fig = plt.figure(figsize=(8, 5))
         ax = fig.add_subplot(111, projection="mollweide")
         ax.set_title("IBEX Mapper")
 
@@ -95,17 +95,6 @@ class Projection:
         else:
             self.drawGraticuleOnMap(ax, np.eye(3))
 
-        at = AnchoredText(
-            "2025 IBEX Mapper",
-            loc="lower right",
-            prop=dict(size=8),
-            frameon=True,
-            pad=0.3,
-            borderpad=0.4
-        )
-        at.patch.set_facecolor("white")
-        at.patch.set_edgecolor("none")
-        ax.add_artist(at)
         plt.tight_layout()
         ax.set_xticks([])
         ax.set_yticks([])
@@ -117,7 +106,7 @@ class Projection:
         pcm = ax.pcolormesh(lon, lat, heatmap_data, cmap=selected_cmap, shading="auto",
                             rasterized=True)
         cbar = fig.colorbar(pcm, ax=ax, orientation="horizontal", pad=0.05)
-        cbar.set_label(r'ENA flux (cm$^{-2}$s$^{-1}$sr$^{-1}$keV$^{-1}$)', fontsize=20)
+        cbar.set_label(r'ENA flux (cm$^{-2}$s$^{-1}$sr$^{-1}$keV$^{-1}$)', fontsize=15)
         cbar.ax.tick_params(labelsize=15)
 
         # Adds Central and Meridian Point to the map
