@@ -50,8 +50,9 @@ def addPoint(point_name: str,
              coordinates: tuple[float, float],
              color: str = "g",
              show_text: bool = True,
-             point_type: str = "o") -> None:
-    return _mapper.map_features.addPoint(point_name, coordinates, color, show_text, point_type)
+             point_type: str = "o",
+             hollow: bool = False) -> None:
+    return _mapper.map_features.addPoint(point_name, coordinates, color, show_text, point_type, hollow)
 
 
 def removePoint(point_name: str) -> None:
