@@ -95,6 +95,7 @@ Adds a point to the map. Is type-checked by default.
 - `color` (str, optional): Color of the point. Default: "g" (green).
 - `show_text` (bool, optional): Whether to show the point name. Default: True.
 - `point_type` (str, optional): Type of point marker. Default: "o" (circle).
+- `hollow` (str, optional): Whether to render a hollow point or not. Default if False
 
 **Returns:**
 - None
