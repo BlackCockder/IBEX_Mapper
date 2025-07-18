@@ -1,4 +1,5 @@
 import ast
+import json
 from pathlib import Path
 import numpy as np
 from .calculator import Calculator
@@ -13,6 +14,8 @@ class Handler:
     # Initializing map_features folder using os package to ensure OS compatibility.
     CONFIG_DIR = "config"
     CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
+    FEATURES_DIR = "map_features"
+    FEATURES_FILE = os.path.join(FEATURES_DIR, "map_features.json")
 
     def __init__(self, calculator: Calculator):
         self.calculator = calculator
@@ -95,7 +98,7 @@ class Handler:
         Value to convert. It supports lists of dictionaries even.
 
         :returns:
-        Returns stringlified value. Can be a dictionary or list.
+        Returns stringnified value. Can be a dictionary or list.
         """
 
         # Brute force all potential values.
@@ -136,6 +139,7 @@ class Handler:
             "central_point": tuple[float, float],
             "meridian_point": tuple[float, float],
             "allow_negative_values": bool,
+            "map_features_type_checking": bool
         }
 
         # Initializing formatted config dictionary.
@@ -149,7 +153,7 @@ class Handler:
 
             try:
 
-                # Use parseStringToPythonDatastructure to parse data.
+                # Use parseStringsToPythonDatastructures to parse data.
                 formatted_config[key] = self.parseStringsToPythonDatastructures(value, expected_type)
 
             except Exception as e:
@@ -267,9 +271,35 @@ class Handler:
         else:
             return value
 
+    # ----------------------------------------------
+    # Getters for all the map feature related stuff.
+    # ----------------------------------------------
+    def getMapFeatures(self) -> dict:
+
+        with open(self.FEATURES_FILE, "r") as features_file:
+            map_features = json.load(features_file)
+
+        return self.formatMapFeaturesToPythonDatastructures(map_features)
+
+    def getPointsList(self) -> list:
+        return self.getMapFeatures().get("points", [])
+
+    def getCirclesList(self) -> list:
+        return self.getMapFeatures().get("circles", [])
+
+    def getTextsList(self) -> list:
+        return self.getMapFeatures().get("texts", [])
+
+    def getHeatmapScale(self) -> tuple[float, float]:
+        return self.getMapFeatures().get("heatmap_scale")
+
+    def getHeatmapColor(self) -> str:
+        return self.getMapFeatures().get("heatmap_color")
+
     def assertConfig(self, config: dict) -> None:
         """
         Method that asserts every value associated with every key in given, non-valid config dictionary.
+        If input is not valid, raises TypeError or ValueError.
 
         :param config:
         Config dictionary with keys and values to check.
@@ -282,7 +312,8 @@ class Handler:
             "rotate",
             "allow_negative_values",
             "central_point",
-            "meridian_point"
+            "meridian_point",
+            "map_features_type_checking",
         }
 
         # Asserts that given config only contains config dictionary keys.
@@ -326,6 +357,15 @@ class Handler:
             elif not isinstance(allow_negative_values, bool):
                 raise ValueError("Allow negative values must be a boolean.")
 
+        # Asserts that given type checking parameter is boolean.
+        if "map_features_type_checking" in config:
+            map_features_type_checking = config["map_features_type_checking"]
+            if isinstance(map_features_type_checking, str):
+                if map_features_type_checking.lower() not in ("true", "false"):
+                    raise ValueError("Map features type checking must be a boolean or a string 'True'/'False'.")
+            elif not isinstance(map_features_type_checking, bool):
+                raise ValueError("Map features type checking must be a boolean.")
+
         # Asserts that given points are valid elliptical points.
         if "central_point" in config:
             self.assertCoordinates(config["central_point"], "Central point")
@@ -353,8 +393,10 @@ class Handler:
         """
 
         # Lists of acceptable inputs for colors and point types.
-        colors = []
-        point_types = []
+        colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
+        point_types = [".", ",", "o", "v", "^", "<", ">", "1", "2", "3",
+                       "4", "8", "s", "p", "P", "*", "h", "H", "+", "x",
+                       "X", "D", "d", "|", "_"]
 
         # Asserts that coordinates are valid elliptical coordinates (lon, lat).
         self.assertCoordinates(coordinates, "Point coordinates")
@@ -384,7 +426,7 @@ class Handler:
         A tuple[float, float] containing elliptical coordinates of center of the circle.
 
         :param alpha:
-        A float indicating the width of the circle. Its range is [0, 180]. TODO: Rotates clockwise or counterclockwise?
+        A float indicating the width of the circle. Its range is [0, 180].
         Both 0 and 180 are technically valid but will generate point, not a circle (all points will stack in one place).
         Note: It is in degrees and 90 degrees represents Great Circle (largest radius).
 
@@ -397,8 +439,8 @@ class Handler:
         """
 
         # Lists of acceptable inputs for color and linestyles.
-        colors = []
-        linestyles = []
+        colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
+        linestyles = ['solid', 'dashed', 'dashdot', 'dotted', '-', '--', '-.', ':']
 
         # Asserts that coordinates are valid elliptical coordinates (lon, lat)
         self.assertCoordinates(coordinates, "Circle coordinates")
@@ -436,15 +478,15 @@ class Handler:
         A float indicating the size of the font. There is minimum and maximum font size.
 
         :param tilt_angle:
-        A float indicating the tilt angle of the text. Range is [0, 360]. TODO: Rotates clockwise or counterclockwise?
+        A float indicating the tilt angle of the text. Range is [0, 360]. Rotates counterclockwise.
 
         """
 
         # List of acceptable color inputs.
-        colors = []
+        colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
 
         # Minimum and maximum acceptable font size.
-        font_size_min = 8
+        font_size_min = 4
         font_size_max = 72
 
         # Asserts that coordinates must be valid elliptical coordinates (lon, lat).
@@ -493,7 +535,8 @@ class Handler:
 
         # Prints orange warning if (0, 0) is used.
         if (x, y) == (0, 0):
-            print("\033[38;5;208mWarning: Custom heatmap scale given is (0, 0). Projector therefore will use automatic scale selection.\033[0m")
+            print("\033[38;5;208mWarning: Custom heatmap scale given is (0, 0). "
+                  "Projector therefore will use automatic scale selection.\033[0m")
             return
 
         # Asserts that x < y.
@@ -510,7 +553,7 @@ class Handler:
 
         """
         # List of acceptable color palette inputs.
-        colors = []
+        colors = ["batlow", "batlowK", "batlowW", "viridis", "magma"]
 
         # Asserts that given color is a string.
         if not isinstance(heatmap_color, str):
